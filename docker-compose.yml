@@ -1,0 +1,65 @@
+name: coding-learning-system
+
+services:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: judge0
+      POSTGRES_USER: judge0
+      POSTGRES_PASSWORD: judge0secret
+    volumes:
+      - judge0_db_data:/var/lib/postgresql/data
+    networks:
+      - judge0_net
+
+  redis:
+    image: redis:6
+    networks:
+      - judge0_net
+
+  server:
+    image: judge0/judge0:latest
+    ports:
+      - "2358:2358"
+    env_file:
+      - ./judge0.conf
+    depends_on:
+      - db
+      - redis
+    networks:
+      - judge0_net
+    command: >
+      bash -li -c "export PATH=/usr/local/ruby-2.7.0/bin:/api/bin:$$PATH; ./scripts/server"
+
+  workers:
+    image: judge0/judge0:latest
+    env_file:
+      - ./judge0.conf
+    depends_on:
+      - server
+    networks:
+      - judge0_net
+    privileged: true
+    command: >
+      bash -li -c "export PATH=/usr/local/ruby-2.7.0/bin:/api/bin:$$PATH; ./scripts/workers"
+
+  next-app:
+    build:
+      context: ./next-app
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./.env
+    depends_on:
+      - server
+    networks:
+      - judge0_net
+
+volumes:
+  judge0_db_data:
+
+networks:
+  judge0_net:
+    name: judge0_net
+
