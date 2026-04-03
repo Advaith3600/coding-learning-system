@@ -126,7 +126,7 @@ export default function AdminStudentsPage() {
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-4xl px-4 py-10">
+      <main className="container-app flex-1 py-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-fg">Manage students</h1>

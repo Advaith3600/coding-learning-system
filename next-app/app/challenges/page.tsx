@@ -103,7 +103,7 @@ export default function ChallengesOverviewPage() {
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-5xl px-4 py-10">
+      <main className="container-app flex-1 py-10">
         <header className="mb-8 border-b border-border pb-8">
           <div className="flex flex-wrap items-start gap-4 sm:gap-5">
             <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl ring-1 ring-border/80">

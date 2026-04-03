@@ -424,7 +424,7 @@ export default function ModuleChallengesPage() {
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-4xl px-4 py-10">
+      <main className="container-app flex-1 py-10">
         <Link
           href="/challenges"
           className="text-sm text-muted underline-offset-4 hover:text-fg hover:underline"

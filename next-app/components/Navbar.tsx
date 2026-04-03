@@ -30,7 +30,7 @@ export function Navbar() {
 
   return (
     <nav className="border-b border-border bg-surface/70 backdrop-blur">
-      <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
+      <div className="container-app flex items-center justify-between gap-4 py-3">
         <Link
           href="/challenges"
           className="flex items-center text-base font-semibold tracking-tight text-fg"
