@@ -1,28 +1,6 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
-import { Navbar } from "@/components/Navbar";
+import Link from "next/link";
+import { getAdminDashboardPayload } from "@/lib/admin-dashboard-data";
 import { CHALLENGES } from "@/lib/challenges/catalog";
-
-type StudentProgress = {
-  id: string;
-  username: string;
-  completedChallengeIds: string[];
-  completedCount: number;
-  totalChallenges: number;
-  percentComplete: number;
-  totalAttempts: number;
-  attemptsPerChallenge: { challengeId: string; attempts: number }[];
-  lastLogin: string | null;
-  rank: number;
-};
-
-type ModuleCompletionStat = {
-  moduleId: number;
-  title: string;
-  totalChallenges: number;
-  studentsCompleted: number;
-};
 
 function ProgressBar({ percent }: { percent: number }) {
   return (
@@ -35,117 +13,100 @@ function ProgressBar({ percent }: { percent: number }) {
   );
 }
 
-export default function AdminDashboardPage() {
-  const [students, setStudents] = useState<StudentProgress[]>([]);
-  const [moduleStats, setModuleStats] = useState<ModuleCompletionStat[]>([]);
-  const [error, setError] = useState<string | null>(null);
+export default async function AdminDashboardPage() {
+  let students: Awaited<ReturnType<typeof getAdminDashboardPayload>>["students"] = [];
+  let moduleStats: Awaited<ReturnType<typeof getAdminDashboardPayload>>["moduleStats"] = [];
+  let error: string | null = null;
 
-  useEffect(() => {
-    fetch("/api/admin/progress")
-      .then((r) => r.json())
-      .then(
-        (d: {
-          students?: StudentProgress[];
-          moduleStats?: ModuleCompletionStat[];
-          error?: string;
-        }) => {
-          if (!Array.isArray(d.students)) {
-            setError(d.error ?? "Failed to load dashboard.");
-            return;
-          }
-          setStudents(d.students);
-          setModuleStats(Array.isArray(d.moduleStats) ? d.moduleStats : []);
-        }
-      )
-      .catch(() => setError("Failed to load dashboard."));
-  }, []);
+  try {
+    const data = await getAdminDashboardPayload();
+    students = data.students;
+    moduleStats = data.moduleStats;
+  } catch {
+    error = "Failed to load dashboard.";
+  }
 
   const totalChallenges = CHALLENGES.length;
-  const classAvg = useMemo(() => {
-    if (!students.length) return 0;
-    const sum = students.reduce((acc, s) => acc + s.percentComplete, 0);
-    return Math.round(sum / students.length);
-  }, [students]);
+  const classAvg =
+    students.length === 0
+      ? 0
+      : Math.round(students.reduce((acc, s) => acc + s.percentComplete, 0) / students.length);
 
   return (
-    <>
-      <Navbar />
-      <main className="container-app flex-1 py-10">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-fg">Admin dashboard</h1>
-            <p className="mt-2 text-base text-muted">
-              Track student progress across {totalChallenges} challenges.
-            </p>
-          </div>
-          <a
-            href="/admin/students"
-            className="btn btn-secondary h-control-md px-4"
-          >
-            Manage students
-          </a>
+    <main className="container-app py-10">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-fg">Admin dashboard</h1>
+          <p className="mt-2 text-base text-muted">
+            Track student progress across {totalChallenges} challenges.
+          </p>
         </div>
+        <Link href="/admin/students" className="btn btn-secondary h-control-md px-4">
+          Manage students
+        </Link>
+      </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <div className="card p-4">
-            <div className="text-sm font-medium text-muted">Students</div>
-            <div className="mt-2 text-2xl font-semibold text-fg">{students.length}</div>
-          </div>
-          <div className="card p-4">
-            <div className="text-sm font-medium text-muted">Class average</div>
-            <div className="mt-2 text-2xl font-semibold text-fg">{classAvg}%</div>
-          </div>
-          <div className="card p-4">
-            <div className="text-sm font-medium text-muted">Total challenges</div>
-            <div className="mt-2 text-2xl font-semibold text-fg">{totalChallenges}</div>
-          </div>
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <div className="card p-4">
+          <div className="text-sm font-medium text-muted">Students</div>
+          <div className="mt-2 text-2xl font-semibold text-fg">{students.length}</div>
         </div>
+        <div className="card p-4">
+          <div className="text-sm font-medium text-muted">Class average</div>
+          <div className="mt-2 text-2xl font-semibold text-fg">{classAvg}%</div>
+        </div>
+        <div className="card p-4">
+          <div className="text-sm font-medium text-muted">Total challenges</div>
+          <div className="mt-2 text-2xl font-semibold text-fg">{totalChallenges}</div>
+        </div>
+      </div>
 
-        {error ? (
-          <div className="mt-6 rounded-xl border border-danger/40 bg-danger/10 p-4 text-base text-danger">
-            {error}
-          </div>
-        ) : null}
+      {error ? (
+        <div className="mt-6 rounded-xl border border-danger/40 bg-danger/10 p-4 text-base text-danger">
+          {error}
+        </div>
+      ) : null}
 
-        {moduleStats.length ? (
-          <div className="mt-10">
-            <h2 className="text-lg font-semibold text-fg">Module completion</h2>
-            <p className="mt-1 text-sm text-muted">
-              How many students have finished every challenge in each module.
-            </p>
-            <div className="mt-4 overflow-x-auto rounded-xl border border-border">
-              <table className="w-full min-w-[32rem] text-left text-sm">
-                <thead className="border-b border-border bg-surface">
-                  <tr>
-                    <th className="px-4 py-3 font-medium text-muted">Module</th>
-                    <th className="px-4 py-3 font-medium text-muted">Title</th>
-                    <th className="px-4 py-3 font-medium text-muted">Challenges</th>
-                    <th className="px-4 py-3 font-medium text-muted">Students done</th>
+      {!error && moduleStats.length ? (
+        <div className="mt-10">
+          <h2 className="text-lg font-semibold text-fg">Module completion</h2>
+          <p className="mt-1 text-sm text-muted">
+            How many students have finished every challenge in each module.
+          </p>
+          <div className="mt-4 overflow-x-auto rounded-xl border border-border">
+            <table className="w-full min-w-[32rem] text-left text-sm">
+              <thead className="border-b border-border bg-surface">
+                <tr>
+                  <th className="px-4 py-3 font-medium text-muted">Module</th>
+                  <th className="px-4 py-3 font-medium text-muted">Title</th>
+                  <th className="px-4 py-3 font-medium text-muted">Challenges</th>
+                  <th className="px-4 py-3 font-medium text-muted">Students done</th>
+                </tr>
+              </thead>
+              <tbody>
+                {moduleStats.map((m) => (
+                  <tr key={m.moduleId} className="border-b border-border/60 last:border-0">
+                    <td className="px-4 py-3 font-mono text-fg">{m.moduleId}</td>
+                    <td className="px-4 py-3 text-fg">{m.title}</td>
+                    <td className="px-4 py-3 text-muted">{m.totalChallenges}</td>
+                    <td className="px-4 py-3 text-fg">
+                      {m.studentsCompleted}
+                      {students.length ? (
+                        <span className="text-muted">
+                          {" "}
+                          / {students.length}
+                        </span>
+                      ) : null}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {moduleStats.map((m) => (
-                    <tr key={m.moduleId} className="border-b border-border/60 last:border-0">
-                      <td className="px-4 py-3 font-mono text-fg">{m.moduleId}</td>
-                      <td className="px-4 py-3 text-fg">{m.title}</td>
-                      <td className="px-4 py-3 text-muted">{m.totalChallenges}</td>
-                      <td className="px-4 py-3 text-fg">
-                        {m.studentsCompleted}
-                        {students.length ? (
-                          <span className="text-muted">
-                            {" "}
-                            / {students.length}
-                          </span>
-                        ) : null}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ) : null}
+        </div>
+      ) : null}
 
+      {!error ? (
         <div className="mt-10 grid gap-4 md:grid-cols-2">
           {students.map((s) => (
             <div key={s.id} className="card p-5">
@@ -207,7 +168,7 @@ export default function AdminDashboardPage() {
             </div>
           ))}
         </div>
-      </main>
-    </>
+      ) : null}
+    </main>
   );
 }

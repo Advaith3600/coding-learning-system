@@ -12,15 +12,22 @@ type SessionUser = {
   role: "admin" | "student";
 };
 
-export function Navbar() {
-  const [user, setUser] = useState<SessionUser | null>(null);
+export function Navbar({ initialUser }: { initialUser?: SessionUser | null }) {
+  const [user, setUser] = useState<SessionUser | null>(initialUser ?? null);
 
   useEffect(() => {
+    if (initialUser !== undefined) {
+      setUser(initialUser);
+    }
+  }, [initialUser]);
+
+  useEffect(() => {
+    if (initialUser !== undefined) return;
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((d: { user?: SessionUser | null }) => setUser(d.user ?? null))
       .catch(() => setUser(null));
-  }, []);
+  }, [initialUser]);
 
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });

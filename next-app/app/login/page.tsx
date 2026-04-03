@@ -56,83 +56,85 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-10">
-      <div className="card p-6">
-        <div className="mb-5 flex justify-center">
-          <Image
-            src={logo}
-            alt="Mikkaiser Coder logo"
-            width={320}
-            height={120}
-            priority
-            sizes="(max-width: 768px) 260px, 320px"
-            className="h-[84px] w-auto"
-          />
-        </div>
-        <h1 className="text-xl font-semibold tracking-tight text-fg">Sign in</h1>
-        <p className="mt-1 text-base text-muted">Use your account credentials.</p>
-
-        <div className="mt-6 space-y-4">
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-muted">
-              Username
-            </label>
-            <input
-              id="username"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="input mt-1"
+    <main className="container-app flex flex-1 flex-col justify-center py-10">
+      <div className="mx-auto w-full max-w-md">
+        <div className="card p-6">
+          <div className="mb-5 flex justify-center">
+            <Image
+              src={logo}
+              alt="Mikkaiser Coder logo"
+              width={320}
+              height={120}
+              priority
+              sizes="(max-width: 768px) 260px, 320px"
+              className="h-[84px] w-auto"
             />
           </div>
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-muted">
-              Password
-            </label>
-            <div className="relative mt-1">
+          <h1 className="text-xl font-semibold tracking-tight text-fg">Sign in</h1>
+          <p className="mt-1 text-base text-muted">Use your account credentials.</p>
+
+          <div className="mt-6 space-y-4">
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-muted">
+                Username
+              </label>
               <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input pr-12"
+                id="username"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="input mt-1"
               />
+            </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-muted">
+                Password
+              </label>
+              <div className="relative mt-1">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-0 inline-flex w-12 items-center justify-center rounded-r-lg text-sm font-semibold text-muted transition hover:text-fg"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {error ? (
+            <p className="mt-3 text-base text-danger" role="alert">
+              {error}
+            </p>
+          ) : null}
+
+          <div className="mt-6 w-full">
+            <div className="glow-wrap w-full">
+              <div className="glow" aria-hidden="true" />
+              <div className="border-ring" aria-hidden="true">
+                <div className="border-ring-inner" />
+              </div>
               <button
                 type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute inset-y-0 right-0 inline-flex w-12 items-center justify-center rounded-r-lg text-sm font-semibold text-muted transition hover:text-fg"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                disabled={busy}
+                onClick={submit}
+                className="btn btn-primary relative z-0 w-full rounded-full"
               >
-                {showPassword ? "Hide" : "Show"}
+                {busy ? "Signing in…" : "Sign in"}
               </button>
             </div>
           </div>
         </div>
-
-        {error ? (
-          <p className="mt-3 text-base text-danger" role="alert">
-            {error}
-          </p>
-        ) : null}
-
-        <div className="mt-6 w-full">
-          <div className="glow-wrap w-full">
-            <div className="glow" aria-hidden="true" />
-            <div className="border-ring" aria-hidden="true">
-              <div className="border-ring-inner" />
-            </div>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={submit}
-              className="btn btn-primary relative z-0 w-full rounded-full"
-            >
-              {busy ? "Signing in…" : "Sign in"}
-            </button>
-          </div>
-        </div>
       </div>
-    </div>
+    </main>
   );
 }

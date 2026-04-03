@@ -6,11 +6,11 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border bg-surface/70 backdrop-blur">
-      <div className="container-app flex flex-col items-center justify-between gap-4 py-5 sm:flex-row sm:items-center">
+    <footer className="relative z-10 w-full shrink-0 border-t border-border bg-surface/70 backdrop-blur">
+      <div className="container-app flex flex-col items-center justify-center gap-4 py-5 text-center">
         <Link
           href="/challenges"
-          className="flex shrink-0 items-center opacity-90 transition hover:opacity-100"
+          className="inline-flex items-center justify-center opacity-90 transition hover:opacity-100"
         >
           <Image
             src={logo}
@@ -21,7 +21,7 @@ export function Footer() {
             className="h-7 w-auto sm:h-8"
           />
         </Link>
-        <p className="text-center text-sm text-muted">
+        <p className="text-sm text-muted">
           © {year} Mikkaiser Coder. All rights reserved.
         </p>
       </div>

@@ -25,9 +25,9 @@
   --danger: 239 68 68;
 }
 
-html,
-body {
-  height: 100%;
+/* Let the document grow with content; fixed 100% height breaks flex + footer flow. */
+html {
+  min-height: 100%;
 }
 
 @layer base {
@@ -41,8 +41,9 @@ body {
 }
 
 @layer components {
+  /* Single column width for nav, main, footer (1024px + horizontal padding). */
   .container-app {
-    @apply mx-auto max-w-5xl px-4;
+    @apply mx-auto w-full max-w-[1024px] px-4;
   }
 
   .card {
