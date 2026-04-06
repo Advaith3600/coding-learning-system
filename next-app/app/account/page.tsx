@@ -2,10 +2,12 @@
 
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
+import type { UserRole } from "@/lib/users";
 
 export default function AccountPage() {
   const [email, setEmail] = useState("");
   const [initialEmail, setInitialEmail] = useState<string | null>(null);
+  const [role, setRole] = useState<UserRole | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
@@ -22,11 +24,15 @@ export default function AccountPage() {
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((d: { user?: { email?: string } | null }) => {
+      .then((d: { user?: { email?: string; role?: UserRole } | null }) => {
         const e = d.user?.email;
         if (typeof e === "string") {
           setEmail(e);
           setInitialEmail(e);
+        }
+        const r = d.user?.role;
+        if (r === "admin" || r === "student") {
+          setRole(r);
         }
       })
       .catch(() => {});
@@ -100,12 +106,15 @@ export default function AccountPage() {
 
   const loaded = initialEmail !== null;
   const noEmailChanges = loaded && email.trim() === initialEmail.trim();
+  const isAdmin = role === "admin";
 
   return (
     <main className="container-app py-10">
       <h1 className="text-2xl font-semibold tracking-tight text-fg">Account</h1>
       <p className="mt-2 text-base text-muted">
-        Update your email and password. Email must be unique across all accounts.
+        {isAdmin
+          ? "Update your email and password. Email must be unique across all accounts."
+          : "Update your email. Email must be unique across all accounts."}
       </p>
 
       <div className="card mt-6 max-w-md p-6">
@@ -141,6 +150,7 @@ export default function AccountPage() {
         </form>
       </div>
 
+      {isAdmin ? (
       <div className="card mt-6 max-w-md p-6">
         <h2 className="text-lg font-semibold text-fg">Password</h2>
         <p className="mt-1 text-sm text-muted">
@@ -246,6 +256,7 @@ export default function AccountPage() {
           </button>
         </form>
       </div>
+      ) : null}
     </main>
   );
 }

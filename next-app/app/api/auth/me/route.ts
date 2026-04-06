@@ -48,6 +48,12 @@ export async function PATCH(req: Request) {
   }
 
   if (wantsPassword) {
+    if (user.role !== "admin") {
+      return NextResponse.json(
+        { error: "Only administrators can change their password." },
+        { status: 403 }
+      );
+    }
     if (typeof currentPassword !== "string" || !currentPassword.length) {
       return NextResponse.json(
         { error: "Current password is required to set a new password." },

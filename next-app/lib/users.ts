@@ -222,8 +222,14 @@ export async function updateOwnPassword(
 
   const rows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   const row = rows[0];
-  if (!row || (row.role !== "admin" && row.role !== "student")) {
+  if (!row) {
     return { ok: false as const, error: "User not found." };
+  }
+  if (row.role !== "admin") {
+    return {
+      ok: false as const,
+      error: "Only administrators can change their password."
+    };
   }
 
   const match = await bcrypt.compare(currentPassword, row.passwordHash);
