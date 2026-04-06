@@ -1,4 +1,3 @@
-import "./load-env";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "./client";
@@ -6,8 +5,18 @@ import { users } from "./schema";
 
 async function seed() {
   const seeds = [
-    { username: "admin", password: "admin123@", role: "admin" as const },
-    { username: "student", password: "studentest123@", role: "student" as const }
+    {
+      username: "admin",
+      email: "admin@example.local",
+      password: "admin123@",
+      role: "admin" as const
+    },
+    {
+      username: "student",
+      email: "student@example.local",
+      password: "studentest123@",
+      role: "student" as const
+    }
   ];
 
   for (const s of seeds) {
@@ -17,6 +26,7 @@ async function seed() {
     }
     await db.insert(users).values({
       username: s.username,
+      email: s.email,
       passwordHash: await bcrypt.hash(s.password, 10),
       role: s.role
     });

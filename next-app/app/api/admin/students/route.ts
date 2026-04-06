@@ -16,7 +16,7 @@ export async function GET() {
   if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const students = await listStudents();
   return NextResponse.json({
-    students: students.map((s) => ({ id: s.id, username: s.username }))
+    students: students.map((s) => ({ id: s.id, username: s.username, email: s.email }))
   });
 }
 
@@ -32,14 +32,17 @@ export async function POST(req: Request) {
   }
 
   const username = (body as { username?: unknown })?.username;
+  const email = (body as { email?: unknown })?.email;
   const password = (body as { password?: unknown })?.password;
-  if (typeof username !== "string" || typeof password !== "string") {
-    return NextResponse.json({ error: "Missing username or password." }, { status: 400 });
+  if (typeof username !== "string" || typeof email !== "string" || typeof password !== "string") {
+    return NextResponse.json({ error: "Missing username, email, or password." }, { status: 400 });
   }
 
-  const created = await createStudent({ username, password });
+  const created = await createStudent({ username, email, password });
   if (!created.ok) return NextResponse.json({ error: created.error }, { status: 400 });
-  return NextResponse.json({ student: { id: created.user.id, username: created.user.username } });
+  return NextResponse.json({
+    student: { id: created.user.id, username: created.user.username, email: created.user.email }
+  });
 }
 
 export async function PUT(req: Request) {
@@ -55,15 +58,19 @@ export async function PUT(req: Request) {
 
   const id = (body as { id?: unknown })?.id;
   const username = (body as { username?: unknown })?.username;
+  const email = (body as { email?: unknown })?.email;
   const password = (body as { password?: unknown })?.password;
   if (typeof id !== "string") return NextResponse.json({ error: "Missing id." }, { status: 400 });
 
   const updated = await updateStudent(id, {
     ...(typeof username === "string" ? { username } : null),
+    ...(typeof email === "string" ? { email } : null),
     ...(typeof password === "string" ? { password } : null)
   });
   if (!updated.ok) return NextResponse.json({ error: updated.error }, { status: 400 });
-  return NextResponse.json({ student: { id: updated.user.id, username: updated.user.username } });
+  return NextResponse.json({
+    student: { id: updated.user.id, username: updated.user.username, email: updated.user.email }
+  });
 }
 
 export async function DELETE(req: Request) {

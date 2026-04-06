@@ -1,14 +1,11 @@
-import "./load-env";
 import path from "node:path";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
+import { resolveAppDatabaseUrl } from "./env";
 
 async function main() {
-  const url = process.env.APP_DATABASE_URL;
-  if (!url) {
-    throw new Error("APP_DATABASE_URL is not set");
-  }
+  const url = resolveAppDatabaseUrl();
   const sql = postgres(url, { max: 1 });
   const db = drizzle(sql);
   await migrate(db, {

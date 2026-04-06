@@ -126,6 +126,7 @@ export default async function AdminDashboardPage() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-base font-semibold text-fg">{s.username}</div>
+                  <div className="mt-1 text-sm text-muted/90">{s.email}</div>
                   <div className="mt-1 text-sm text-muted">
                     Rank #{s.rank} · {s.completedCount}/{s.totalChallenges} completed ·{" "}
                     {s.totalAttempts} attempts

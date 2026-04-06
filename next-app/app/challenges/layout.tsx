@@ -5,7 +5,7 @@ import { getSessionUser } from "@/lib/server/session";
 export default async function ChallengesLayout({ children }: { children: ReactNode }) {
   const user = await getSessionUser();
   const initialUser = user
-    ? { id: user.id, username: user.username, role: user.role }
+    ? { id: user.id, username: user.username, role: user.role, email: user.email }
     : null;
 
   return (

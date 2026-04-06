@@ -8,6 +8,7 @@ import { LogoLinkToChallenges } from "@/components/LogoLinkToChallenges";
 type SessionUser = {
   id: string;
   username: string;
+  email: string;
   role: "admin" | "student";
 };
 
@@ -42,6 +43,12 @@ export function Navbar({ initialUser }: { initialUser?: SessionUser | null }) {
           {user ? (
             <>
               <Avatar username={user.username} role={user.role} />
+              <Link
+                href="/account"
+                className="inline-flex h-control-sm items-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-fg transition hover:bg-surface/70"
+              >
+                Account
+              </Link>
               {user.role === "admin" ? (
                 <Link
                   href="/admin/dashboard"

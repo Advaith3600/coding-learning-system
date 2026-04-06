@@ -7,6 +7,7 @@ import { listStudents } from "@/lib/users";
 export type AdminStudentProgressRow = {
   id: string;
   username: string;
+  email: string;
   completedChallengeIds: string[];
   completedCount: number;
   totalChallenges: number;
@@ -44,6 +45,7 @@ export async function getAdminDashboardPayload(): Promise<{
       return {
         id: s.id,
         username: s.username,
+        email: s.email,
         completedChallengeIds: completedIds,
         completedCount,
         totalChallenges,
