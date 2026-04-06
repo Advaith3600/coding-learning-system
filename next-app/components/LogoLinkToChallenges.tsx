@@ -2,8 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import logo from "@/public/images/logo-mikkaiser-coder.png";
 
 type Props = {
@@ -11,16 +9,10 @@ type Props = {
 };
 
 /**
- * Logo link to /challenges: uses router.push on click so navigation is reliable
- * when Next/Image is nested inside a Link (avoids flaky first-click / full reload).
+ * Link to /challenges: prefetch disabled so stale unauthenticated RSC payloads
+ * are not reused after login. Image uses pointer-events-none so clicks hit the Link.
  */
 export function LogoLinkToChallenges({ variant }: Props) {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.prefetch("/challenges");
-  }, [router]);
-
   const linkClass =
     variant === "navbar"
       ? "flex items-center text-base font-semibold tracking-tight text-fg"
@@ -28,29 +20,21 @@ export function LogoLinkToChallenges({ variant }: Props) {
 
   const imageClass =
     variant === "navbar"
-      ? "pointer-events-none h-8 w-auto sm:h-9"
-      : "pointer-events-none h-7 w-auto sm:h-8";
+      ? "pointer-events-none h-10 w-auto sm:h-11"
+      : "pointer-events-none h-9 w-auto sm:h-10";
 
   return (
-    <Link
-      href="/challenges"
-      prefetch
-      className={linkClass}
-      onClick={(e) => {
-        e.preventDefault();
-        router.push("/challenges");
-      }}
-    >
+    <Link href="/challenges" prefetch={false} className={linkClass}>
       <Image
         src={logo}
         alt="Mikkaiser Coder logo"
-        width={variant === "navbar" ? 180 : 160}
-        height={variant === "navbar" ? 48 : 42}
+        width={variant === "navbar" ? 216 : 192}
+        height={variant === "navbar" ? 58 : 50}
         priority={variant === "navbar"}
         sizes={
           variant === "navbar"
-            ? "(max-width: 768px) 140px, 180px"
-            : "(max-width: 640px) 140px, 160px"
+            ? "(max-width: 768px) 168px, 216px"
+            : "(max-width: 640px) 168px, 192px"
         }
         className={imageClass}
       />

@@ -87,18 +87,18 @@ export default async function ChallengesOverviewPage() {
     <main className="container-app py-10">
       <header className="mb-8 border-b border-border pb-8">
         <div className="flex flex-wrap items-start gap-4 sm:gap-5">
-          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl ring-1 ring-border/80">
+            <div className="relative h-[67px] w-[67px] shrink-0 overflow-hidden rounded-xl ring-1 ring-border/80">
             <Image
               src="/images/python_logo.png"
               alt="Python logo"
-              width={56}
-              height={56}
+              width={67}
+              height={67}
               className="h-full w-full object-cover"
               priority
             />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-[32px] font-semibold tracking-tight text-fg">Python Course</h1>
+            <h1 className="text-[38px] font-semibold tracking-tight text-fg">Python Course</h1>
             <p className="mt-2 text-base text-muted">
               {completedCount} / {totalChallenges} challenges complete
             </p>
@@ -129,7 +129,7 @@ export default async function ChallengesOverviewPage() {
                   ) : status === "locked" ? (
                     <LockIcon />
                   ) : (
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-brand-accent/50 text-[10px] font-semibold text-brand-accent">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-brand-accent/50 text-[12px] font-semibold text-brand-accent">
                       {m.id}
                     </span>
                   )}

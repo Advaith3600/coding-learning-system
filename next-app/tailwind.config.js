@@ -19,26 +19,27 @@ module.exports = {
         warning: "rgb(var(--warning) / <alpha-value>)",
         danger: "rgb(var(--danger) / <alpha-value>)"
       },
+      /* ~120% of previous px tokens (global html font-size also scales rem utilities). */
       fontSize: {
-        sm: ["12px", { lineHeight: "16px" }],
-        base: ["14px", { lineHeight: "20px" }],
-        lg: ["16px", { lineHeight: "24px" }],
-        xl: ["20px", { lineHeight: "28px" }]
+        sm: ["14.4px", { lineHeight: "19.2px" }],
+        base: ["16.8px", { lineHeight: "24px" }],
+        lg: ["19.2px", { lineHeight: "28.8px" }],
+        xl: ["24px", { lineHeight: "33.6px" }]
       },
       borderRadius: {
-        sm: "8px",
-        md: "12px",
-        lg: "16px"
+        sm: "9.6px",
+        md: "14.4px",
+        lg: "19.2px"
       },
       height: {
-        "control-sm": "32px",
-        "control-md": "40px",
-        "control-lg": "48px"
+        "control-sm": "38.4px",
+        "control-md": "48px",
+        "control-lg": "57.6px"
       },
       minHeight: {
-        "control-sm": "32px",
-        "control-md": "40px",
-        "control-lg": "48px"
+        "control-sm": "38.4px",
+        "control-md": "48px",
+        "control-lg": "57.6px"
       }
     }
   },

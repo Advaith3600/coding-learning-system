@@ -135,10 +135,10 @@ function ChallengeTestsSummary({
               >
                 <td className="px-3 py-2 font-medium">{t.name}</td>
                 <td className="px-3 py-2 font-semibold">{t.passed ? "PASS" : "FAIL"}</td>
-                <td className="max-w-[14rem] whitespace-pre-wrap break-all px-3 py-2 font-mono text-[11px] text-fg/90">
+                <td className="max-w-[17rem] whitespace-pre-wrap break-all px-3 py-2 font-mono text-[13px] text-fg/90">
                   {t.expected ?? ""}
                 </td>
-                <td className="max-w-[14rem] whitespace-pre-wrap break-all px-3 py-2 font-mono text-[11px] text-fg/90">
+                <td className="max-w-[17rem] whitespace-pre-wrap break-all px-3 py-2 font-mono text-[13px] text-fg/90">
                   {gotCell(t)}
                 </td>
               </tr>
@@ -444,18 +444,18 @@ export function ModuleChallengesClient({
 
         <header className="mt-6 border-b border-border pb-8">
           <div className="flex flex-wrap items-start gap-4 sm:gap-5">
-            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl ring-1 ring-border/80">
+            <div className="relative h-[67px] w-[67px] shrink-0 overflow-hidden rounded-xl ring-1 ring-border/80">
               <Image
                 src="/images/python_logo.png"
                 alt="Python logo"
-                width={56}
-                height={56}
+                width={67}
+                height={67}
                 className="h-full w-full object-cover"
                 priority
               />
             </div>
             <div className="min-w-0 flex-1">
-              <h1 className="text-[28px] font-semibold tracking-tight text-fg">
+              <h1 className="text-[34px] font-semibold tracking-tight text-fg">
                 Module {mod.id} — {mod.title}
               </h1>
               <p className="mt-2 text-base text-muted">{mod.description}</p>
@@ -483,7 +483,7 @@ export function ModuleChallengesClient({
               >
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-[3px] text-[12px] font-medium text-muted">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-[3px] text-[14px] font-medium text-muted">
                       <span>{challenge.badge}</span>
                     </div>
                     {isDone ? (
@@ -498,7 +498,7 @@ export function ModuleChallengesClient({
                   ) : null}
                 </div>
 
-                <h2 className="text-[22px] font-medium tracking-tight text-fg">{challenge.title}</h2>
+                <h2 className="text-[26px] font-medium tracking-tight text-fg">{challenge.title}</h2>
                 <div className="mt-2 text-base">{challenge.instruction}</div>
 
                 <div className="mt-4">
@@ -507,7 +507,7 @@ export function ModuleChallengesClient({
                     {challenge.competences.map((c) => (
                       <li
                         key={c}
-                        className="rounded-full border border-border bg-surface px-[10px] py-[3px] text-[12px] text-muted"
+                        className="rounded-full border border-border bg-surface px-[12px] py-[3px] text-[14px] text-muted"
                       >
                         {c}
                       </li>
@@ -579,7 +579,7 @@ export function ModuleChallengesClient({
                   <div className="mt-6 rounded-xl border border-border border-l-2 border-l-brand-accent bg-bg p-4">
                     <div className="relative overflow-hidden rounded-lg border border-border bg-bg">
                       <Editor
-                        height="260px"
+                        height="312px"
                         defaultLanguage="python"
                         theme="mikkaiser-challenges"
                         value={codeById[challenge.id] ?? ""}
@@ -612,7 +612,7 @@ export function ModuleChallengesClient({
                         }}
                         options={{
                           minimap: { enabled: false },
-                          fontSize: 14,
+                          fontSize: 17,
                           scrollBeyondLastLine: false,
                           automaticLayout: true,
                           readOnly: false
@@ -725,14 +725,14 @@ export function ModuleChallengesClient({
               <button
                 type="button"
                 onClick={closeModuleCompleteModal}
-                className="btn btn-secondary min-w-[7rem]"
+                className="btn btn-secondary min-w-[8.4rem]"
               >
                 Stay here
               </button>
               {nextModule ? (
                 <Link
                   href={`/challenges/module/${nextModule.id}`}
-                  className="btn btn-primary min-w-[7rem]"
+                  className="btn btn-primary min-w-[8.4rem]"
                   onClick={closeModuleCompleteModal}
                 >
                   Next module
@@ -740,7 +740,7 @@ export function ModuleChallengesClient({
               ) : (
                 <Link
                   href="/challenges"
-                  className="btn btn-primary min-w-[7rem]"
+                  className="btn btn-primary min-w-[8.4rem]"
                   onClick={closeModuleCompleteModal}
                 >
                   Back to course

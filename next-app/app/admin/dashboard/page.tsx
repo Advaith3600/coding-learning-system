@@ -41,6 +41,7 @@ export default async function AdminDashboardPage() {
             Track student progress across {totalChallenges} challenges.{" "}
             <Link
               href="/challenges"
+              prefetch={false}
               className="font-medium text-brand-accent underline-offset-4 hover:text-fg hover:underline"
             >
               View course modules
@@ -49,7 +50,7 @@ export default async function AdminDashboardPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/challenges" className="btn btn-secondary h-control-md px-4">
+          <Link href="/challenges" prefetch={false} className="btn btn-secondary h-control-md px-4">
             Course modules
           </Link>
           <Link href="/admin/students" className="btn btn-secondary h-control-md px-4">
@@ -86,7 +87,7 @@ export default async function AdminDashboardPage() {
             How many students have finished every challenge in each module.
           </p>
           <div className="mt-4 overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-[32rem] text-left text-sm">
+            <table className="w-full min-w-[38rem] text-left text-sm">
               <thead className="border-b border-border bg-surface">
                 <tr>
                   <th className="px-4 py-3 font-medium text-muted">Module</th>

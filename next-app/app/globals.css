@@ -28,6 +28,8 @@
 /* Let the document grow with content; fixed 100% height breaks flex + footer flow. */
 html {
   min-height: 100%;
+  /* Global ~20% scale: rem-based spacing/rounding scales with root. */
+  font-size: 120%;
 }
 
 @layer base {
@@ -43,7 +45,7 @@ html {
 @layer components {
   /* Single column width for nav, main, footer (1024px + horizontal padding). */
   .container-app {
-    @apply mx-auto w-full max-w-[1024px] px-4;
+    @apply mx-auto w-full max-w-[1229px] px-4;
   }
 
   .card {
@@ -90,7 +92,7 @@ html {
 /* Login Sign In button — looser aurora */
 .glow {
   position: absolute;
-  inset: -5px;
+  inset: -6px;
   border-radius: inherit;
   background: conic-gradient(
     from var(--angle),
@@ -101,7 +103,7 @@ html {
     rgb(var(--brand-primary))
   );
   animation: rotate 3s linear infinite;
-  filter: blur(9px);
+  filter: blur(11px);
   opacity: 0.7;
   z-index: -2;
 }
@@ -112,14 +114,14 @@ html {
 }
 
 .glow-wrap--run .glow {
-  inset: -2px;
-  filter: blur(5px);
+  inset: -2.5px;
+  filter: blur(6px);
   opacity: 0.58;
 }
 
 .border-ring {
   position: absolute;
-  inset: -1px;
+  inset: -1.2px;
   border-radius: inherit;
   background: conic-gradient(
     from var(--angle),
@@ -135,7 +137,7 @@ html {
 
 .border-ring-inner {
   position: absolute;
-  inset: 1px;
+  inset: 1.2px;
   border-radius: inherit;
   background: rgb(var(--brand-accent));
 }

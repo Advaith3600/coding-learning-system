@@ -44,7 +44,12 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|monaco/).*)"
+    /*
+     * Run auth only on real page navigations, not on Next internals.
+     * Matching /_next/* (except excluding the whole segment) caused middleware
+     * to run on RSC/webpack requests and break client navigations in production.
+     */
+    "/((?!_next|api|favicon\\.ico|monaco).*)"
   ]
 };
 

@@ -69,11 +69,11 @@ export default function LoginPage() {
             <Image
               src={logo}
               alt="Mikkaiser Coder logo"
-              width={320}
-              height={120}
+              width={384}
+              height={144}
               priority
-              sizes="(max-width: 768px) 260px, 320px"
-              className="h-[84px] w-auto"
+              sizes="(max-width: 768px) 312px, 384px"
+              className="h-[101px] w-auto"
             />
           </div>
           <h1 className="text-xl font-semibold tracking-tight text-fg">Sign in</h1>
