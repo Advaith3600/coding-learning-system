@@ -3,9 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import Image from "next/image";
 import { setLoginWelcomeFlag } from "@/components/PostLoginWelcomeToast";
-import logo from "@/public/images/logo-mikkaiser-coder.png";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -71,15 +69,24 @@ export default function LoginPage() {
       <div className="mx-auto w-full max-w-md">
         <div className="card p-6">
           <div className="mb-5 flex justify-center">
-            <Image
-              src={logo}
-              alt="Mikkaiser Coder logo"
-              width={384}
-              height={144}
-              priority
-              sizes="(max-width: 768px) 312px, 384px"
-              className="h-[101px] w-auto"
-            />
+            <div className="flex items-center gap-2">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-8 w-8 text-brand-accent"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <polyline points="16 18 22 12 16 6" />
+                <polyline points="8 6 2 12 8 18" />
+              </svg>
+              <span className="text-xl font-bold tracking-tight text-fg">
+                NovaBuild<span className="text-brand-accent"> Web Studio</span>
+              </span>
+            </div>
           </div>
           <h1 className="text-xl font-semibold tracking-tight text-fg">Sign in</h1>
           <p className="mt-1 text-base text-muted">Use your account credentials.</p>

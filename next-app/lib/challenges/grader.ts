@@ -1,7 +1,22 @@
 import type { ChallengeDefinition, FunctionTestSpec } from "./types";
 
+// ---------------------------------------------------------------------------
+// Primary exports
+// ---------------------------------------------------------------------------
+
 export function buildProgram(challenge: ChallengeDefinition, userCode: string): string {
   if (challenge.kind === "mcq") return userCode;
+
+  if (challenge.kind === "html") {
+    const rules = parseWebRules(challenge.expected ?? "");
+    return buildHtmlValidationHarness(userCode, rules);
+  }
+
+  if (challenge.kind === "css") {
+    const rules = parseWebRules(challenge.expected ?? "");
+    return buildCssValidationHarness(userCode, rules);
+  }
+
   if (challenge.kind === "functions") {
     const custom = CUSTOM_FUNCTION_HARNESS[challenge.id];
     if (custom) return custom(userCode);
@@ -10,6 +25,7 @@ export function buildProgram(challenge: ChallengeDefinition, userCode: string): 
     }
     return userCode;
   }
+
   return userCode;
 }
 
@@ -18,6 +34,14 @@ export function isCorrect(challenge: ChallengeDefinition, stdout: string): boole
   const expected = challenge.expected ?? "";
 
   if (challenge.kind === "mcq") return false;
+
+  // HTML / CSS challenges return a JSON result from the Node.js harness
+  if (challenge.kind === "html" || challenge.kind === "css") {
+    return (
+      trimmed.includes('"allPassed":true') ||
+      trimmed.includes('"allPassed": true')
+    );
+  }
 
   if (expected === "__any_nonempty__") return trimmed.length > 0;
 
@@ -45,7 +69,252 @@ export function isCorrect(challenge: ChallengeDefinition, stdout: string): boole
   return false;
 }
 
-/** Legacy Challenge #2 → "14-2": add + subtract harness (unchanged logic). */
+// ---------------------------------------------------------------------------
+// Web Technologies: HTML / CSS validation via Node.js harnesses
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse the rule list from expected strings like:
+ *   "__html:doctype,lang,charset__"
+ *   "__css:universal-selector,margin-reset__"
+ */
+function parseWebRules(expected: string): string[] {
+  const m = expected.match(/^__(?:html|css):(.+)__$/);
+  if (!m) return [];
+  return m[1].split(",").map((r) => r.trim()).filter(Boolean);
+}
+
+/**
+ * Each rule has a human-readable label and a JavaScript expression string
+ * that evaluates to a boolean. The expression receives `code` as the
+ * variable holding the student's source text.
+ */
+interface RuleSpec {
+  label: string;
+  /** JavaScript expression (must evaluate to boolean, receives `code`) */
+  expr: string;
+}
+
+const HTML_RULES: Record<string, RuleSpec> = {
+  doctype: {
+    label: "DOCTYPE declaration present",
+    expr: `/<!DOCTYPE\\s+html/i.test(code)`
+  },
+  lang: {
+    label: "html element has lang attribute",
+    expr: `/<html[^>]*\\slang\\s*=/i.test(code)`
+  },
+  charset: {
+    label: "meta charset declaration present",
+    expr: `/< *meta[^>]*charset/i.test(code)`
+  },
+  viewport: {
+    label: "meta viewport tag present",
+    expr: `/< *meta[^>]*name\\s*=\\s*["']viewport["']/i.test(code)`
+  },
+  "title-tag": {
+    label: "title element present",
+    expr: `/<title[\\s>/]/i.test(code)`
+  },
+  "body-tag": {
+    label: "body element present",
+    expr: `/<body[\\s>/]/i.test(code)`
+  },
+  "header-tag": {
+    label: "header element used",
+    expr: `/<header[\\s>/]/i.test(code)`
+  },
+  "nav-tag": {
+    label: "nav element used",
+    expr: `/<nav[\\s>/]/i.test(code)`
+  },
+  "main-tag": {
+    label: "main element used",
+    expr: `/<main[\\s>/]/i.test(code)`
+  },
+  "footer-tag": {
+    label: "footer element used",
+    expr: `/<footer[\\s>/]/i.test(code)`
+  },
+  "section-tag": {
+    label: "section element used",
+    expr: `/<section[\\s>/]/i.test(code)`
+  },
+  "article-tag": {
+    label: "article element used",
+    expr: `/<article[\\s>/]/i.test(code)`
+  },
+  "one-h1": {
+    label: "exactly one h1 element",
+    expr: `(code.match(/<h1[\\s>]/gi) || []).length === 1`
+  },
+  "h2-present": {
+    label: "at least one h2 element present",
+    expr: `/<h2[\\s>]/i.test(code)`
+  },
+  "no-h3-before-h2": {
+    label: "h3 only appears after an h2",
+    expr: `(function(){ var h2=code.search(/<h2[\\s>]/i); var h3=code.search(/<h3[\\s>]/i); if(h3===-1) return true; if(h2===-1) return false; return h2<h3; })()`
+  },
+  "display-flex": {
+    label: "display: flex applied",
+    expr: `/display\\s*:\\s*flex/i.test(code)`
+  },
+  "justify-content": {
+    label: "justify-content property used",
+    expr: `/justify-content\\s*:/i.test(code)`
+  },
+  "list-style-none": {
+    label: "list-style: none applied",
+    expr: `/list-style\\s*:\\s*none/i.test(code)`
+  },
+  "form-aria-label": {
+    label: "form element has aria-label",
+    expr: `/<form[^>]*aria-label\\s*=/i.test(code)`
+  },
+  "label-for": {
+    label: "label elements use for attribute",
+    expr: `/<label[^>]*\\bfor\\s*=/i.test(code)`
+  },
+  "input-with-id": {
+    label: "input elements have id attribute",
+    expr: `/<input[^>]*\\bid\\s*=/i.test(code)`
+  },
+  "required-attr": {
+    label: "required attribute present on inputs",
+    expr: `/\\brequired\\b/i.test(code)`
+  },
+  "aria-describedby": {
+    label: "aria-describedby links input to helper text",
+    expr: `/aria-describedby\\s*=/i.test(code)`
+  },
+  "email-type": {
+    label: "email input uses type=\"email\"",
+    expr: `/type\\s*=\\s*["']email["']/i.test(code)`
+  }
+};
+
+const CSS_RULES: Record<string, RuleSpec> = {
+  "universal-selector": {
+    label: "universal selector (*) used",
+    expr: `/\\*\\s*\\{/.test(code)`
+  },
+  "margin-reset": {
+    label: "margin reset to 0",
+    expr: `/margin\\s*:\\s*0/.test(code)`
+  },
+  "padding-reset": {
+    label: "padding reset to 0",
+    expr: `/padding\\s*:\\s*0/.test(code)`
+  },
+  "box-sizing": {
+    label: "box-sizing: border-box applied globally",
+    expr: `/box-sizing\\s*:\\s*border-box/.test(code)`
+  },
+  "root-block": {
+    label: ":root block declared",
+    expr: `/:root\\s*\\{/.test(code)`
+  },
+  "min-3-vars": {
+    label: "at least 3 CSS custom properties defined",
+    expr: `(code.match(/--[\\w-]+\\s*:/g) || []).length >= 3`
+  },
+  "min-5-vars": {
+    label: "at least 5 CSS custom properties defined",
+    expr: `(code.match(/--[\\w-]+\\s*:/g) || []).length >= 5`
+  },
+  "var-usage": {
+    label: "var() function used",
+    expr: `/var\\(--/.test(code)`
+  },
+  "display-flex": {
+    label: "display: flex used",
+    expr: `/display\\s*:\\s*flex/.test(code)`
+  },
+  "display-grid": {
+    label: "display: grid used",
+    expr: `/display\\s*:\\s*grid/.test(code)`
+  },
+  "grid-template-cols": {
+    label: "grid-template-columns defined",
+    expr: `/grid-template-columns\\s*:/.test(code)`
+  },
+  "gap-property": {
+    label: "gap property used for spacing",
+    expr: `/\\bgap\\s*:/.test(code)`
+  },
+  "media-600": {
+    label: "min-width: 600px media query present",
+    expr: `/@media[^{]*min-width\\s*:\\s*600px/.test(code)`
+  },
+  "media-1024": {
+    label: "min-width: 1024px media query present",
+    expr: `/@media[^{]*min-width\\s*:\\s*1024px/.test(code)`
+  },
+  "no-max-width": {
+    label: "no max-width queries used (mobile-first)",
+    expr: `!/@media[^{]*max-width/.test(code)`
+  },
+  "media-600-content": {
+    label: "600px media query contains CSS rules",
+    expr: `(function(){ var m=code.match(/@media[^{]*min-width\\s*:\\s*600px[^{]*\\{([\\s\\S]*?)\\}/); return !!(m && m[1] && m[1].replace(/\\/\\*[\\s\\S]*?\\*\\//g,'').trim().length>0); })()`
+  },
+  "media-1024-content": {
+    label: "1024px media query contains CSS rules",
+    expr: `(function(){ var m=code.match(/@media[^{]*min-width\\s*:\\s*1024px[^{]*\\{([\\s\\S]*?)\\}/); return !!(m && m[1] && m[1].replace(/\\/\\*[\\s\\S]*?\\*\\//g,'').trim().length>0); })()`
+  }
+};
+
+function buildHtmlValidationHarness(userCode: string, rules: string[]): string {
+  const b64 = Buffer.from(userCode, "utf-8").toString("base64");
+  const checks = rules
+    .map((r) => {
+      const rule = HTML_RULES[r];
+      if (!rule) return `check(${JSON.stringify("Unknown rule: " + r)}, false);`;
+      return `check(${JSON.stringify(rule.label)}, ${rule.expr});`;
+    })
+    .join("\n");
+
+  return `var code = Buffer.from(${JSON.stringify(b64)}, "base64").toString("utf-8");
+var results = [];
+function check(name, passed) {
+  results.push({ name: name, passed: Boolean(passed) });
+}
+
+${checks}
+
+var allPassed = results.every(function(r) { return r.passed; });
+process.stdout.write(JSON.stringify({ allPassed: allPassed, tests: results }) + "\\n");
+`;
+}
+
+function buildCssValidationHarness(userCode: string, rules: string[]): string {
+  const b64 = Buffer.from(userCode, "utf-8").toString("base64");
+  const checks = rules
+    .map((r) => {
+      const rule = CSS_RULES[r];
+      if (!rule) return `check(${JSON.stringify("Unknown rule: " + r)}, false);`;
+      return `check(${JSON.stringify(rule.label)}, ${rule.expr});`;
+    })
+    .join("\n");
+
+  return `var code = Buffer.from(${JSON.stringify(b64)}, "base64").toString("utf-8");
+var results = [];
+function check(name, passed) {
+  results.push({ name: name, passed: Boolean(passed) });
+}
+
+${checks}
+
+var allPassed = results.every(function(r) { return r.passed; });
+process.stdout.write(JSON.stringify({ allPassed: allPassed, tests: results }) + "\\n");
+`;
+}
+
+// ---------------------------------------------------------------------------
+// Python function harnesses (legacy — kept for backwards compatibility)
+// ---------------------------------------------------------------------------
+
 export function buildLegacy142Harness(userCode: string): string {
   return `${userCode}
 
@@ -147,346 +416,6 @@ except Exception:
 `;
 }
 
-function buildApplyToAllHarness(userCode: string): string {
-  return `${userCode}
-
-import json
-import traceback
-import sys
-
-results = []
-
-def _record(name, passed, expected=None, got=None):
-    item = {"name": name, "passed": bool(passed)}
-    if expected is not None:
-        item["expected"] = repr(expected)
-    if got is not None:
-        item["got"] = repr(got)
-    results.append(item)
-
-try:
-    fn = globals().get("apply_to_all")
-    if not callable(fn):
-        _record("apply_to_all exists", False, expected="callable", got=fn)
-        raise RuntimeError("apply_to_all missing")
-
-    def double(x):
-        return x * 2
-
-    got = fn(double, [1, 2, 3])
-    _record("apply_to_all double", got == [2, 4, 6], expected=[2, 4, 6], got=got)
-
-    all_passed = all(r["passed"] for r in results)
-    print(json.dumps({"allPassed": all_passed, "tests": results}))
-except Exception:
-    traceback.print_exc()
-    sys.exit(0)
-`;
-}
-
-function buildRetryHarness(userCode: string): string {
-  return `${userCode}
-
-import json
-import traceback
-import sys
-
-results = []
-
-def _record(name, passed, expected=None, got=None):
-    item = {"name": name, "passed": bool(passed)}
-    if expected is not None:
-        item["expected"] = repr(expected)
-    if got is not None:
-        item["got"] = repr(got)
-    results.append(item)
-
-try:
-    retry_fn = globals().get("retry")
-    if not callable(retry_fn):
-        _record("retry exists", False, expected="callable", got=retry_fn)
-        raise RuntimeError("retry missing")
-
-    state = {"n": 0}
-
-    def flaky():
-        state["n"] += 1
-        if state["n"] < 3:
-            raise ValueError("fail")
-        return 42
-
-    got1 = retry_fn(flaky, 3)
-    _record("retry succeeds third", got1 == 42, expected=42, got=got1)
-
-    def always_fail():
-        raise RuntimeError("x")
-
-    got2 = retry_fn(always_fail, 3)
-    _record("retry gives up", got2 is None, expected=None, got=got2)
-
-    all_passed = all(r["passed"] for r in results)
-    print(json.dumps({"allPassed": all_passed, "tests": results}))
-except Exception:
-    traceback.print_exc()
-    sys.exit(0)
-`;
-}
-
-function buildBankAccountHarness(userCode: string): string {
-  return `${userCode}
-
-import json
-import traceback
-import sys
-
-results = []
-
-def _record(name, passed, expected=None, got=None):
-    item = {"name": name, "passed": bool(passed)}
-    if expected is not None:
-        item["expected"] = repr(expected)
-    if got is not None:
-        item["got"] = repr(got)
-    results.append(item)
-
-try:
-    acc = BankAccount(100)
-    acc.deposit(50)
-    acc.withdraw(30)
-    _record("balance", acc.balance == 120, expected=120, got=acc.balance)
-    all_passed = all(r["passed"] for r in results)
-    print(json.dumps({"allPassed": all_passed, "tests": results}))
-except Exception:
-    traceback.print_exc()
-    sys.exit(0)
-`;
-}
-
-function buildRectangleHarness(userCode: string): string {
-  return `${userCode}
-
-import json
-import traceback
-import sys
-
-results = []
-
-def _record(name, passed, expected=None, got=None):
-    item = {"name": name, "passed": bool(passed)}
-    if expected is not None:
-        item["expected"] = repr(expected)
-    if got is not None:
-        item["got"] = repr(got)
-    results.append(item)
-
-try:
-    r1 = Rectangle(4, 5)
-    _record("area 4x5", r1.area() == 20, expected=20, got=r1.area())
-    _record("perim 4x5", r1.perimeter() == 18, expected=18, got=r1.perimeter())
-    r2 = Rectangle(3, 3)
-    _record("area 3x3", r2.area() == 9, expected=9, got=r2.area())
-    all_passed = all(r["passed"] for r in results)
-    print(json.dumps({"allPassed": all_passed, "tests": results}))
-except Exception:
-    traceback.print_exc()
-    sys.exit(0)
-`;
-}
-
-function buildStudentAverageHarness(userCode: string): string {
-  return `${userCode}
-
-import json
-import traceback
-import sys
-
-results = []
-
-def _record(name, passed, expected=None, got=None):
-    item = {"name": name, "passed": bool(passed)}
-    if expected is not None:
-        item["expected"] = repr(expected)
-    if got is not None:
-        item["got"] = repr(got)
-    results.append(item)
-
-try:
-    s = Student("Alice", [80, 90, 100])
-    _record("average", s.average() == 90.0, expected=90.0, got=s.average())
-    all_passed = all(r["passed"] for r in results)
-    print(json.dumps({"allPassed": all_passed, "tests": results}))
-except Exception:
-    traceback.print_exc()
-    sys.exit(0)
-`;
-}
-
-function buildPlaylistLenHarness(userCode: string): string {
-  return `${userCode}
-
-import json
-import traceback
-import sys
-
-results = []
-
-def _record(name, passed, expected=None, got=None):
-    item = {"name": name, "passed": bool(passed)}
-    if expected is not None:
-        item["expected"] = repr(expected)
-    if got is not None:
-        item["got"] = repr(got)
-    results.append(item)
-
-try:
-    p1 = Playlist(["a", "b", "c"])
-    _record("len3", len(p1) == 3, expected=3, got=len(p1))
-    p2 = Playlist([])
-    _record("len0", len(p2) == 0, expected=0, got=len(p2))
-    all_passed = all(r["passed"] for r in results)
-    print(json.dumps({"allPassed": all_passed, "tests": results}))
-except Exception:
-    traceback.print_exc()
-    sys.exit(0)
-`;
-}
-
-function buildPointEqHarness(userCode: string): string {
-  return `${userCode}
-
-import json
-import traceback
-import sys
-
-results = []
-
-def _record(name, passed, expected=None, got=None):
-    item = {"name": name, "passed": bool(passed)}
-    if expected is not None:
-        item["expected"] = repr(expected)
-    if got is not None:
-        item["got"] = repr(got)
-    results.append(item)
-
-try:
-    _record("eq", Point(1, 2) == Point(1, 2), expected=True, got=(Point(1, 2) == Point(1, 2)))
-    _record("neq", Point(1, 2) == Point(1, 3), expected=False, got=(Point(1, 2) == Point(1, 3)))
-    all_passed = all(r["passed"] for r in results)
-    print(json.dumps({"allPassed": all_passed, "tests": results}))
-except Exception:
-    traceback.print_exc()
-    sys.exit(0)
-`;
-}
-
-function buildStackHarness(userCode: string): string {
-  return `${userCode}
-
-import json
-import traceback
-import sys
-
-results = []
-
-def _record(name, passed, expected=None, got=None):
-    item = {"name": name, "passed": bool(passed)}
-    if expected is not None:
-        item["expected"] = repr(expected)
-    if got is not None:
-        item["got"] = repr(got)
-    results.append(item)
-
-try:
-    s = Stack()
-    s.push(1)
-    s.push(2)
-    _record("peek", s.peek() == 2, expected=2, got=s.peek())
-    _record("pop2", s.pop() == 2, expected=2, got=s.pop())
-    _record("peek1", s.peek() == 1, expected=1, got=s.peek())
-    all_passed = all(r["passed"] for r in results)
-    print(json.dumps({"allPassed": all_passed, "tests": results}))
-except Exception:
-    traceback.print_exc()
-    sys.exit(0)
-`;
-}
-
-function buildQueueHarness(userCode: string): string {
-  return `${userCode}
-
-import json
-import traceback
-import sys
-
-results = []
-
-def _record(name, passed, expected=None, got=None):
-    item = {"name": name, "passed": bool(passed)}
-    if expected is not None:
-        item["expected"] = repr(expected)
-    if got is not None:
-        item["got"] = repr(got)
-    results.append(item)
-
-try:
-    q = Queue()
-    q.enqueue("a")
-    q.enqueue("b")
-    x = q.dequeue()
-    _record("deq a", x == "a", expected="a", got=x)
-    y = q.dequeue()
-    _record("deq b", y == "b", expected="b", got=y)
-    all_passed = all(r["passed"] for r in results)
-    print(json.dumps({"allPassed": all_passed, "tests": results}))
-except Exception:
-    traceback.print_exc()
-    sys.exit(0)
-`;
-}
-
-function buildLibraryHarness(userCode: string): string {
-  return `${userCode}
-
-import json
-import traceback
-import sys
-
-results = []
-
-def _record(name, passed, expected=None, got=None):
-    item = {"name": name, "passed": bool(passed)}
-    if expected is not None:
-        item["expected"] = repr(expected)
-    if got is not None:
-        item["got"] = repr(got)
-    results.append(item)
-
-try:
-    lib = Library()
-    lib.add_book(Book("1984", "Orwell"))
-    found = lib.search_by_author("Orwell")
-    _record("find", found is not None and found.title == "1984", expected="found", got=found)
-    lib.remove_by_title("1984")
-    gone = lib.search_by_author("Orwell")
-    _record("gone", gone is None, expected=None, got=gone)
-    all_passed = all(r["passed"] for r in results)
-    print(json.dumps({"allPassed": all_passed, "tests": results}))
-except Exception:
-    traceback.print_exc()
-    sys.exit(0)
-`;
-}
-
 const CUSTOM_FUNCTION_HARNESS: Record<string, (code: string) => string> = {
-  "14-2": buildLegacy142Harness,
-  "14-17": buildApplyToAllHarness,
-  "17-11": buildRetryHarness,
-  "16-5": buildBankAccountHarness,
-  "16-9": buildRectangleHarness,
-  "16-10": buildStudentAverageHarness,
-  "16-16": buildPlaylistLenHarness,
-  "16-17": buildPointEqHarness,
-  "16-18": buildStackHarness,
-  "16-19": buildQueueHarness,
-  "16-20": buildLibraryHarness
+  "14-2": buildLegacy142Harness
 };

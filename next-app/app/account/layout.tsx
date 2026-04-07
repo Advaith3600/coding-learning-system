@@ -6,7 +6,7 @@ import { SITE_NAME, defaultOpenGraph, defaultTwitter, robotsPrivate } from "@/li
 import { getSessionUser } from "@/lib/server/session";
 
 const title = "Account";
-const desc = "Update your email and manage your Mikkaiser Coder profile settings.";
+const desc = "Update your email and manage your NovaBuild Web Studio profile settings.";
 
 export const metadata: Metadata = {
   title,

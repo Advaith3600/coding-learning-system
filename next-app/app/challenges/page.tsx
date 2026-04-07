@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { getChallengeProgress } from "@/lib/completions";
 import { CHALLENGES, getModule, MODULES } from "@/lib/challenges/catalog";
@@ -9,7 +8,7 @@ import { getSessionUser } from "@/lib/server/session";
 
 const pageTitle = "Course modules";
 const pageDesc =
-  "Browse Python learning modules, unlock challenges in order, and track your progress across the full Mikkaiser Coder curriculum.";
+  "Browse Web Technologies learning modules, unlock challenges in order, and track your progress across HTML5, CSS, and responsive design.";
 
 export const metadata: Metadata = {
   title: pageTitle,
@@ -56,6 +55,29 @@ function CheckIcon({ className }: { className?: string }) {
     >
       <path d="M20 6L9 17l-5-5" />
     </svg>
+  );
+}
+
+/** Web icon for the course header */
+function WebIcon() {
+  return (
+    <div className="flex h-[67px] w-[67px] shrink-0 items-center justify-center rounded-xl bg-brand-accent/15 ring-1 ring-brand-accent/40">
+      <svg
+        viewBox="0 0 32 32"
+        className="h-9 w-9 text-brand-accent"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="16" cy="16" r="13" />
+        <path d="M3 16h26" />
+        <path d="M16 3c-4 4-6 8-6 13s2 9 6 13" />
+        <path d="M16 3c4 4 6 8 6 13s-2 9-6 13" />
+      </svg>
+    </div>
   );
 }
 
@@ -108,20 +130,16 @@ export default async function ChallengesOverviewPage() {
     <main className="container-app py-10">
       <header className="mb-8 border-b border-border pb-8">
         <div className="flex flex-wrap items-start gap-4 sm:gap-5">
-            <div className="relative h-[67px] w-[67px] shrink-0 overflow-hidden rounded-xl ring-1 ring-border/80">
-            <Image
-              src="/images/python_logo.png"
-              alt="Python logo"
-              width={67}
-              height={67}
-              className="h-full w-full object-cover"
-              priority
-            />
-          </div>
+          <WebIcon />
           <div className="min-w-0 flex-1">
-            <h1 className="text-[38px] font-semibold tracking-tight text-fg">Python Course</h1>
-            <p className="mt-2 text-base text-muted">
-              {completedCount} / {totalChallenges} challenges complete
+            <h1 className="text-[38px] font-semibold tracking-tight text-fg">
+              Web Technologies
+            </h1>
+            <p className="mt-1 text-base text-muted">
+              HTML5 · CSS · Responsive Design · Accessibility
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              {completedCount} / {totalChallenges} tasks complete
             </p>
           </div>
         </div>
@@ -150,7 +168,7 @@ export default async function ChallengesOverviewPage() {
                   ) : status === "locked" ? (
                     <LockIcon />
                   ) : (
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-brand-accent/50 text-[12px] font-semibold text-brand-accent">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-brand-accent/50 text-[12px] font-semibold text-brand-accent">
                       {m.id}
                     </span>
                   )}
@@ -163,7 +181,7 @@ export default async function ChallengesOverviewPage() {
               <p className="mt-2 line-clamp-2 text-xs text-muted">{m.description}</p>
               {unlocked ? (
                 <div className="mt-3 text-sm text-fg">
-                  {done}/{total} challenges
+                  {done}/{total} tasks
                 </div>
               ) : (
                 <div className="mt-3 text-sm text-muted">Locked</div>

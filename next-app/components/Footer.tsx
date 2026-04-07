@@ -8,7 +8,7 @@ export function Footer() {
       <div className="container-app flex flex-col items-center justify-center gap-4 py-5 text-center">
         <LogoLinkToChallenges variant="footer" />
         <p className="text-sm text-muted">
-          © {year} Mikkaiser Coder. All rights reserved.
+          © {year} NovaBuild Web Studio. All rights reserved.
         </p>
       </div>
     </footer>

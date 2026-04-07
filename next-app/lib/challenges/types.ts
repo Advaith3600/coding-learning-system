@@ -9,7 +9,9 @@ export type ChallengeKind =
   | "output"
   | "fix"
   | "functions"
-  | "mcq";
+  | "mcq"
+  | "html"
+  | "css";
 
 export type ChallengeTestCase = {
   name: string;
@@ -54,6 +56,11 @@ export type ChallengeDefinition = {
   options?: string[];
   correctOption?: string;
   functionTests?: FunctionTestSpec[];
+  /**
+   * For CSS challenges: full HTML page template with {{CSS}} placeholder.
+   * The live preview panel injects the student's CSS in place of {{CSS}}.
+   */
+  previewHtml?: string;
 };
 
 export type ModuleDefinition = {

@@ -1,9 +1,6 @@
-name: coding-learning-system
-
 services:
   db:
     image: postgres:13
-    container_name: postgres-db-judge0
     restart: always
     environment:
       POSTGRES_DB: judge0
@@ -16,14 +13,12 @@ services:
 
   redis:
     image: redis:6
-    container_name: redis-judge0
     restart: always
     networks:
       - judge0_net
 
   server:
     image: judge0/judge0:latest
-    container_name: judge0-server
     restart: always
     environment:
       REDIS_HOST: redis
@@ -41,7 +36,6 @@ services:
 
   workers:
     image: judge0/judge0:latest
-    container_name: judge0-workers
     restart: always
     environment:
       REDIS_HOST: redis
@@ -59,7 +53,6 @@ services:
 
   app-db:
     image: postgres:16
-    container_name: postgres-db-app
     restart: always
     environment:
       POSTGRES_DB: app
@@ -79,7 +72,6 @@ services:
     build:
       context: ./next-app
       dockerfile: Dockerfile
-    container_name: coding-learning-system-web
     restart: always
     env_file:
       - ./.env
@@ -96,6 +88,5 @@ services:
 
 networks:
   judge0_net:
-    name: judge0_net
   coding-learning-network:
     external: true

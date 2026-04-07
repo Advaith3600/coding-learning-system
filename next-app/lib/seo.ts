@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
-export const SITE_NAME = "Mikkaiser Coder";
+export const SITE_NAME = "NovaBuild Web Studio";
 
 export const DEFAULT_DESCRIPTION =
-  "Learn Python with interactive coding challenges, instant Judge0 feedback, and structured modules from basics to advanced topics.";
+  "Learn Web Technologies with interactive coding challenges, instant Judge0 feedback, and structured modules covering HTML5, CSS, and responsive design.";
 
 /** Base URL for canonical links and Open Graph (set NEXT_PUBLIC_SITE_URL in production). */
 export function getSiteUrl(): URL {

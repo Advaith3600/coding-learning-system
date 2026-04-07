@@ -1,7 +1,6 @@
 "use client";
 
 import Editor from "@monaco-editor/react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -10,6 +9,7 @@ import { getChallenge, getModule, MODULES } from "@/lib/challenges/catalog";
 import type {
   ChallengeDefinition,
   ChallengeId,
+  ChallengeKind,
   ChallengeTestCase,
   JudgeResult,
   ModuleId
@@ -25,6 +25,8 @@ type UiState =
   | { kind: "error"; stderr: string }
   | { kind: "failure" };
 
+const NOVABUILD_THEME = "novabuild-challenges";
+
 function sortChallenges(list: ChallengeDefinition[]): ChallengeDefinition[] {
   return [...list].sort((a, b) => {
     const pa = a.id.split("-").map(Number);
@@ -34,6 +36,13 @@ function sortChallenges(list: ChallengeDefinition[]): ChallengeDefinition[] {
     if (am !== bm) return am - bm;
     return ac - bc;
   });
+}
+
+/** Monaco language for a given challenge kind */
+function editorLanguage(kind: ChallengeKind): string {
+  if (kind === "html") return "html";
+  if (kind === "css") return "css";
+  return "python";
 }
 
 function Spinner() {
@@ -81,6 +90,28 @@ function SuccessBannerCheckIcon() {
   );
 }
 
+function WebCourseIcon() {
+  return (
+    <div className="flex h-[67px] w-[67px] shrink-0 items-center justify-center rounded-xl bg-brand-accent/15 ring-1 ring-brand-accent/40">
+      <svg
+        viewBox="0 0 32 32"
+        className="h-9 w-9 text-brand-accent"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="16" cy="16" r="13" />
+        <path d="M3 16h26" />
+        <path d="M16 3c-4 4-6 8-6 13s2 9 6 13" />
+        <path d="M16 3c4 4 6 8 6 13s-2 9-6 13" />
+      </svg>
+    </div>
+  );
+}
+
 function ChallengeTestsSummary({
   challenge,
   ui
@@ -93,13 +124,13 @@ function ChallengeTestsSummary({
     name: exp.startsWith("__") ? "Pattern" : "Exact output",
     passed: ui.kind === "correct",
     expected: exp,
-    got: ui.kind === "wrong" || ui.kind === "correct" ? ui.stdout : ""
+    got: ui.kind === "wrong" || ui.kind === "correct" ? (ui as { stdout?: string }).stdout : ""
   };
 
   const tests: ChallengeTestCase[] =
     ui.kind === "wrong" || ui.kind === "correct"
-      ? ui.tests?.length
-        ? ui.tests
+      ? (ui as { tests?: ChallengeTestCase[] }).tests?.length
+        ? (ui as { tests: ChallengeTestCase[] }).tests
         : [fallback]
       : [];
 
@@ -109,22 +140,20 @@ function ChallengeTestsSummary({
     const g = t.got ?? "";
     if (g !== "") return g;
     if (ui.kind === "wrong" || ui.kind === "correct") {
-      return (ui.stdout ?? "").trim();
+      return ((ui as { stdout?: string }).stdout ?? "").trim();
     }
     return "";
   }
 
   return (
     <>
-      <div className="mt-2 text-sm text-muted/80">Test scenarios:</div>
+      <div className="mt-2 text-sm text-muted/80">Validation checks:</div>
       <div className="mt-2 overflow-hidden rounded border border-border">
         <table className="w-full text-left text-sm">
           <thead className="bg-bg text-muted">
             <tr>
-              <th className="px-3 py-2">Test</th>
+              <th className="px-3 py-2">Check</th>
               <th className="px-3 py-2">Result</th>
-              <th className="px-3 py-2">Expected</th>
-              <th className="px-3 py-2">Got</th>
             </tr>
           </thead>
           <tbody className="bg-bg text-fg">
@@ -135,18 +164,41 @@ function ChallengeTestsSummary({
               >
                 <td className="px-3 py-2 font-medium">{t.name}</td>
                 <td className="px-3 py-2 font-semibold">{t.passed ? "PASS" : "FAIL"}</td>
-                <td className="max-w-[17rem] whitespace-pre-wrap break-all px-3 py-2 font-mono text-[13px] text-fg/90">
-                  {t.expected ?? ""}
-                </td>
-                <td className="max-w-[17rem] whitespace-pre-wrap break-all px-3 py-2 font-mono text-[13px] text-fg/90">
-                  {gotCell(t)}
-                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
     </>
+  );
+}
+
+/** Live preview panel for HTML and CSS challenges */
+function LivePreviewPanel({
+  srcdoc,
+  label
+}: {
+  srcdoc: string;
+  label: string;
+}) {
+  return (
+    <div className="flex min-h-[312px] flex-1 flex-col overflow-hidden rounded-lg border border-border bg-white">
+      <div className="flex items-center gap-2 border-b border-border bg-surface/60 px-3 py-1.5">
+        <div className="flex gap-1.5" aria-hidden="true">
+          <span className="h-2.5 w-2.5 rounded-full bg-border" />
+          <span className="h-2.5 w-2.5 rounded-full bg-border" />
+          <span className="h-2.5 w-2.5 rounded-full bg-border" />
+        </div>
+        <span className="text-xs text-muted">{label}</span>
+      </div>
+      <iframe
+        title="Live preview"
+        srcDoc={srcdoc || "<html><body style='font-family:system-ui;color:#666;padding:20px;'>Preview will appear here as you type…</body></html>"}
+        sandbox="allow-scripts"
+        className="flex-1 bg-white"
+        style={{ border: "none", minHeight: "280px" }}
+      />
+    </div>
   );
 }
 
@@ -177,7 +229,6 @@ export function ModuleChallengesClient({
   const sectionsRef = useRef<Record<string, HTMLElement | null>>({});
   const [role, setRole] = useState<"admin" | "student" | null>(initialRole);
   const [completed, setCompleted] = useState<Record<string, boolean>>(initialCompleted);
-  /** Saved solutions from the server for completed code challenges (autofill on reload). */
   const [savedSolutions, setSavedSolutions] = useState<Record<string, string>>(initialSolutions);
   const [codeById, setCodeById] = useState<Record<string, string>>({});
   const [uiById, setUiById] = useState<Record<string, UiState>>({});
@@ -187,6 +238,8 @@ export function ModuleChallengesClient({
   const [showModuleCompleteModal, setShowModuleCompleteModal] = useState(false);
   const moduleCompleteSyncedRef = useRef(false);
   const prevModuleCompleteRef = useRef(false);
+  /** Debounced live-preview content per challenge id */
+  const [livePreviewById, setLivePreviewById] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (ssrHydrated) return;
@@ -255,6 +308,26 @@ export function ModuleChallengesClient({
     });
   }, [mod, savedSolutions]);
 
+  // Debounced live preview update for HTML / CSS challenges
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const updates: Record<string, string> = {};
+      for (const ch of challenges) {
+        if (ch.kind !== "html" && ch.kind !== "css") continue;
+        const code = codeById[ch.id] ?? "";
+        if (ch.kind === "html") {
+          updates[ch.id] = code;
+        } else if (ch.kind === "css" && ch.previewHtml) {
+          updates[ch.id] = ch.previewHtml.replace("{{CSS}}", code);
+        }
+      }
+      if (Object.keys(updates).length > 0) {
+        setLivePreviewById((prev) => ({ ...prev, ...updates }));
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [codeById, challenges]);
+
   const doneInModule = challenges.filter((c) => completed[c.id]).length;
   const moduleComplete =
     challenges.length > 0 && doneInModule === challenges.length;
@@ -300,8 +373,6 @@ export function ModuleChallengesClient({
 
   useEffect(() => {
     if (!mod) return;
-    // Avoid redirecting before progress loads: empty `completed` makes
-    // prevModuleComplete false and would bounce students back to /challenges.
     if (!progressLoaded) return;
     if (role === null) return;
     if (role === "admin") return;
@@ -444,23 +515,14 @@ export function ModuleChallengesClient({
 
         <header className="mt-6 border-b border-border pb-8">
           <div className="flex flex-wrap items-start gap-4 sm:gap-5">
-            <div className="relative h-[67px] w-[67px] shrink-0 overflow-hidden rounded-xl ring-1 ring-border/80">
-              <Image
-                src="/images/python_logo.png"
-                alt="Python logo"
-                width={67}
-                height={67}
-                className="h-full w-full object-cover"
-                priority
-              />
-            </div>
+            <WebCourseIcon />
             <div className="min-w-0 flex-1">
               <h1 className="text-[34px] font-semibold tracking-tight text-fg">
                 Module {mod.id} — {mod.title}
               </h1>
               <p className="mt-2 text-base text-muted">{mod.description}</p>
               <p className="mt-2 text-sm text-muted">
-                {doneInModule}/{challenges.length} challenges completed
+                {doneInModule}/{challenges.length} tasks completed
               </p>
             </div>
           </div>
@@ -472,6 +534,8 @@ export function ModuleChallengesClient({
             const ui = uiById[challenge.id] ?? { kind: "idle" };
             const isRunning = runningId === challenge.id;
             const isDone = Boolean(completed[challenge.id]);
+            const isWebChallenge = challenge.kind === "html" || challenge.kind === "css";
+            const previewSrcdoc = livePreviewById[challenge.id] ?? "";
 
             return (
               <section
@@ -485,6 +549,11 @@ export function ModuleChallengesClient({
                   <div className="flex items-center gap-3">
                     <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-[3px] text-[14px] font-medium text-muted">
                       <span>{challenge.badge}</span>
+                      {isWebChallenge ? (
+                        <span className="rounded bg-brand-accent/15 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand-accent">
+                          {challenge.kind.toUpperCase()}
+                        </span>
+                      ) : null}
                     </div>
                     {isDone ? (
                       <span className="rounded-full border border-success/40 bg-success/10 px-3 py-1 text-sm font-semibold text-success">
@@ -520,18 +589,19 @@ export function ModuleChallengesClient({
                     <div className="flex items-center gap-3 text-fg">
                       <LockIcon />
                       <div className="text-sm font-semibold">
-                        Complete the previous challenge in this module to unlock this one.
+                        Complete the previous task to unlock this one.
                       </div>
                     </div>
                   </div>
                 ) : challenge.kind === "mcq" ? (
+                  /* ---- MCQ Challenge ---- */
                   <div className="mt-6 rounded-xl border border-border bg-bg p-4">
                     {challenge.snippet ? (
                       <pre className="overflow-auto rounded-lg bg-bg p-3 font-mono text-sm text-fg ring-1 ring-border">
                         {challenge.snippet}
                       </pre>
                     ) : null}
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-4 flex flex-col gap-2">
                       {(challenge.options ?? []).map((opt) => (
                         <button
                           key={opt}
@@ -542,10 +612,10 @@ export function ModuleChallengesClient({
                               [challenge.id]: opt
                             }))
                           }
-                          className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                          className={`rounded-lg border px-4 py-3 text-left text-sm transition ${
                             selectedOptionById[challenge.id] === opt
-                              ? "border-brand-accent ring-2 ring-brand-accent"
-                              : "border-border bg-surface hover:bg-surface/80"
+                              ? "border-brand-accent bg-brand-accent/10 text-fg ring-2 ring-brand-accent"
+                              : "border-border bg-surface hover:bg-surface/80 text-fg"
                           }`}
                         >
                           {opt}
@@ -567,57 +637,82 @@ export function ModuleChallengesClient({
                       </button>
                     </div>
                     {ui.kind === "correct" ? (
-                      <div className="mt-4 text-sm font-semibold text-success">Correct!</div>
+                      <div className="mt-4 rounded-lg border border-success/50 bg-success/10 px-4 py-3">
+                        <div className="text-sm font-semibold text-success">
+                          {challenge.successText}
+                        </div>
+                      </div>
                     ) : null}
                     {ui.kind === "wrong" ? (
                       <div className="mt-4 text-sm font-semibold text-warning">
-                        Wrong answer — try again.
+                        Incorrect — review your notes and try again.
                       </div>
                     ) : null}
                   </div>
                 ) : (
+                  /* ---- Code Challenge (HTML / CSS / Python) ---- */
                   <div className="mt-6 rounded-xl border border-border border-l-2 border-l-brand-accent bg-bg p-4">
-                    <div className="relative overflow-hidden rounded-lg border border-border bg-bg">
-                      <Editor
-                        height="312px"
-                        defaultLanguage="python"
-                        theme="mikkaiser-challenges"
-                        value={codeById[challenge.id] ?? ""}
-                        onChange={(v) =>
-                          setCodeById((prev) => ({
-                            ...prev,
-                            [challenge.id]: v ?? ""
-                          }))
-                        }
-                        beforeMount={(monaco) => {
-                          monaco.editor.defineTheme("mikkaiser-challenges", {
-                            base: "vs-dark",
-                            inherit: true,
-                            rules: [],
-                            colors: {
-                              "editor.background": "#08080c",
-                              "editorGutter.background": "#08080c",
-                              "editorLineNumber.foreground": "#ffffff33",
-                              "editorLineNumber.activeForeground": "#ffffff55",
-                              "editorCursor.foreground": "#a78bfa",
-                              "editor.foreground": "#e4e4e7",
-                              "editorWidget.background": "#121218",
-                              "editorSuggestWidget.background": "#121218",
-                              "editorHoverWidget.background": "#121218",
-                              "input.background": "#08080c",
-                              "scrollbarSlider.background": "#ffffff22",
-                              "scrollbarSlider.hoverBackground": "#ffffff33"
+                    {/* Editor + preview panel */}
+                    <div className={isWebChallenge ? "flex flex-col gap-4 md:flex-row" : ""}>
+                      {/* Monaco Editor */}
+                      <div className={`relative overflow-hidden rounded-lg border border-border bg-bg ${isWebChallenge ? "flex-1" : ""}`}>
+                        <Editor
+                          height="312px"
+                          defaultLanguage={editorLanguage(challenge.kind)}
+                          language={editorLanguage(challenge.kind)}
+                          theme={NOVABUILD_THEME}
+                          value={codeById[challenge.id] ?? ""}
+                          onChange={(v) =>
+                            setCodeById((prev) => ({
+                              ...prev,
+                              [challenge.id]: v ?? ""
+                            }))
+                          }
+                          beforeMount={(monaco) => {
+                            monaco.editor.defineTheme(NOVABUILD_THEME, {
+                              base: "vs-dark",
+                              inherit: true,
+                              rules: [],
+                              colors: {
+                                "editor.background": "#08080c",
+                                "editorGutter.background": "#08080c",
+                                "editorLineNumber.foreground": "#ffffff33",
+                                "editorLineNumber.activeForeground": "#ffffff55",
+                                "editorCursor.foreground": "#2563eb",
+                                "editor.foreground": "#e4e4e7",
+                                "editorWidget.background": "#121218",
+                                "editorSuggestWidget.background": "#121218",
+                                "editorHoverWidget.background": "#121218",
+                                "input.background": "#08080c",
+                                "scrollbarSlider.background": "#ffffff22",
+                                "scrollbarSlider.hoverBackground": "#ffffff33"
+                              }
+                            });
+                          }}
+                          options={{
+                            minimap: { enabled: false },
+                            fontSize: 15,
+                            scrollBeyondLastLine: false,
+                            automaticLayout: true,
+                            readOnly: false,
+                            wordWrap: isWebChallenge ? "on" : "off"
+                          }}
+                        />
+                      </div>
+
+                      {/* Live preview for HTML / CSS */}
+                      {isWebChallenge ? (
+                        <div className="flex-1">
+                          <LivePreviewPanel
+                            srcdoc={previewSrcdoc}
+                            label={
+                              challenge.kind === "css"
+                                ? "Live Preview (CSS applied to template HTML)"
+                                : "Live Preview"
                             }
-                          });
-                        }}
-                        options={{
-                          minimap: { enabled: false },
-                          fontSize: 17,
-                          scrollBeyondLastLine: false,
-                          automaticLayout: true,
-                          readOnly: false
-                        }}
-                      />
+                          />
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="mt-4 flex items-center justify-between gap-4">
@@ -635,12 +730,12 @@ export function ModuleChallengesClient({
                           {isRunning ? (
                             <>
                               <Spinner />
-                              <span>Running...</span>
+                              <span>Validating...</span>
                             </>
                           ) : isDone ? (
-                            "Run again"
+                            "Validate again"
                           ) : (
-                            "Run Code"
+                            isWebChallenge ? "Validate Code" : "Run Code"
                           )}
                         </button>
                       </div>
@@ -651,7 +746,9 @@ export function ModuleChallengesClient({
                     {ui.kind === "loading" ? (
                       <div className="mt-4 flex items-center gap-3 rounded-lg border border-border bg-bg px-4 py-3 text-muted">
                         <Spinner />
-                        <div className="text-sm text-fg/80">Running your code...</div>
+                        <div className="text-sm text-fg/80">
+                          {isWebChallenge ? "Validating your code…" : "Running your code…"}
+                        </div>
                       </div>
                     ) : null}
 
@@ -669,15 +766,19 @@ export function ModuleChallengesClient({
 
                     {ui.kind === "wrong" ? (
                       <div className="mt-4 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-fg">
-                        <div className="text-sm font-semibold">Wrong answer.</div>
+                        <div className="text-sm font-semibold">
+                          {isWebChallenge
+                            ? "Some checks failed — review the list below and fix your code."
+                            : "Wrong answer — try again."}
+                        </div>
                         <ChallengeTestsSummary challenge={challenge} ui={ui} />
                       </div>
                     ) : null}
 
                     {ui.kind === "error" ? (
                       <div className="mt-4 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-fg">
-                        <div className="text-sm font-semibold">Runtime/compile error</div>
-                        <div className="mt-2 text-sm text-danger/80">stderr:</div>
+                        <div className="text-sm font-semibold">Validation error</div>
+                        <div className="mt-2 text-sm text-danger/80">Details:</div>
                         <pre className="mt-1 overflow-auto rounded bg-bg px-3 py-2 text-sm text-fg">
                           {ui.stderr.length ? ui.stderr : "(empty)"}
                         </pre>
@@ -687,7 +788,7 @@ export function ModuleChallengesClient({
                     {ui.kind === "failure" ? (
                       <div className="mt-4 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-fg">
                         <div className="text-sm font-semibold">
-                          Request failed. Please try again.
+                          Request failed — please try again.
                         </div>
                       </div>
                     ) : null}
@@ -719,7 +820,7 @@ export function ModuleChallengesClient({
             <p className="mt-2 text-sm text-muted">
               {nextModule
                 ? `You can open Module ${nextModule.id} (${nextModule.title}) or stay on this page.`
-                : "You have finished the full course. Congratulations!"}
+                : "You have completed all modules in this course. Congratulations!"}
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
               <button

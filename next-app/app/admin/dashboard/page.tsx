@@ -6,7 +6,7 @@ import { SITE_NAME, defaultOpenGraph, defaultTwitter } from "@/lib/seo";
 
 const pageTitle = "Dashboard";
 const pageDesc =
-  "View class-wide progress, module completion stats, and per-student challenge activity for your Mikkaiser Coder classroom.";
+  "View class-wide progress, module completion stats, and per-student challenge activity for your NovaBuild Web Studio classroom.";
 
 export const metadata: Metadata = {
   title: pageTitle,

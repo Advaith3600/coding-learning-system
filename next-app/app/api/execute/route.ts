@@ -32,8 +32,6 @@ type FunctionsStdoutJson = {
 
 /**
  * Judge0 is polled with `base64_encoded=false`, so stdout/stderr are plain UTF-8 text.
- * Do not auto-decode as Base64: short lines like "Alex" match length % 4 and the Base64
- * alphabet and decode to garbage (mojibake in the UI "Got" column).
  */
 function decodeJudge0TextField(value: string | null | undefined): string {
   if (value == null || value === "") return "";
@@ -58,6 +56,16 @@ async function pollUntilDone(
     }
   }
   throw new Error("Submission timed out after polling");
+}
+
+/**
+ * Returns the Judge0 language_id for a given challenge kind.
+ *   71 = Python 3.8 (output / fix / functions)
+ *   63 = Node.js 12 (html / css validation harnesses)
+ */
+function languageIdForKind(kind: string): number {
+  if (kind === "html" || kind === "css") return 63;
+  return 71;
 }
 
 export async function POST(req: Request) {
@@ -97,6 +105,7 @@ export async function POST(req: Request) {
   }
 
   const program = buildProgram(challenge, code);
+  const languageId = languageIdForKind(challenge.kind);
 
   const judge0Root = judge0BaseUrl.endsWith("/")
     ? judge0BaseUrl
@@ -108,7 +117,7 @@ export async function POST(req: Request) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      language_id: 71,
+      language_id: languageId,
       source_code: program,
       enable_per_process_and_thread_memory_limit: true,
       enable_per_process_and_thread_time_limit: true
@@ -150,7 +159,13 @@ export async function POST(req: Request) {
   let tests: ChallengeTestCase[] | undefined;
   let correct = isCorrect(challenge, stdout);
 
-  if (challenge.kind === "functions" && !stderr.trim()) {
+  // HTML / CSS and functions challenges return structured JSON from the harness
+  const isStructuredKind =
+    challenge.kind === "functions" ||
+    challenge.kind === "html" ||
+    challenge.kind === "css";
+
+  if (isStructuredKind && !stderr.trim()) {
     try {
       const parsed = JSON.parse(stdout.trim()) as FunctionsStdoutJson;
       if (typeof parsed?.allPassed === "boolean" && Array.isArray(parsed?.tests)) {
@@ -180,7 +195,7 @@ export async function POST(req: Request) {
   }
 
   const stdoutForClient =
-    challenge.kind === "functions" && tests && tests.length > 0 ? "" : stdout;
+    isStructuredKind && tests && tests.length > 0 ? "" : stdout;
 
   return NextResponse.json({
     stdout: stdoutForClient,

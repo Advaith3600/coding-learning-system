@@ -1,8 +1,6 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import logo from "@/public/images/logo-mikkaiser-coder.png";
 
 type Props = {
   variant: "navbar" | "footer";
@@ -10,34 +8,38 @@ type Props = {
 
 /**
  * Link to /challenges: prefetch disabled so stale unauthenticated RSC payloads
- * are not reused after login. Image uses pointer-events-none so clicks hit the Link.
+ * are not reused after login.
  */
 export function LogoLinkToChallenges({ variant }: Props) {
   const linkClass =
     variant === "navbar"
-      ? "flex items-center text-base font-semibold tracking-tight text-fg"
-      : "inline-flex items-center justify-center opacity-90 transition hover:opacity-100";
+      ? "flex items-center gap-2 text-base font-semibold tracking-tight text-fg focus-visible:outline-none"
+      : "inline-flex items-center gap-2 justify-center opacity-90 transition hover:opacity-100 focus-visible:outline-none";
 
-  const imageClass =
-    variant === "navbar"
-      ? "pointer-events-none h-10 w-auto sm:h-11"
-      : "pointer-events-none h-9 w-auto sm:h-10";
+  const iconSize = variant === "navbar" ? "h-7 w-7" : "h-6 w-6";
+  const textSize = variant === "navbar" ? "text-base sm:text-lg" : "text-sm sm:text-base";
 
   return (
     <Link href="/challenges" prefetch={false} className={linkClass}>
-      <Image
-        src={logo}
-        alt="Mikkaiser Coder logo"
-        width={variant === "navbar" ? 216 : 192}
-        height={variant === "navbar" ? 58 : 50}
-        priority={variant === "navbar"}
-        sizes={
-          variant === "navbar"
-            ? "(max-width: 768px) 168px, 216px"
-            : "(max-width: 640px) 168px, 192px"
-        }
-        className={imageClass}
-      />
+      {/* Code brackets icon */}
+      <svg
+        viewBox="0 0 28 28"
+        className={`${iconSize} shrink-0 text-brand-accent`}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M9 8L4 14l5 6" />
+        <path d="M19 8l5 6-5 6" />
+        <path d="M16 5l-4 18" />
+      </svg>
+      <span className={textSize}>
+        <span className="font-bold text-fg">NovaBuild</span>
+        <span className="font-medium text-brand-accent"> Web Studio</span>
+      </span>
     </Link>
   );
 }

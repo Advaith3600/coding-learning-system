@@ -20,7 +20,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
   title: {
-    default: `${SITE_NAME} — Python coding challenges`,
+    default: `${SITE_NAME} — Web Technologies Challenges`,
     template: `%s | ${SITE_NAME}`
   },
   description: DEFAULT_DESCRIPTION,
@@ -28,13 +28,16 @@ export const metadata: Metadata = {
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
   keywords: [
-    "Python",
-    "learn Python",
+    "HTML5",
+    "CSS",
+    "Web Technologies",
+    "learn HTML",
+    "learn CSS",
     "coding challenges",
-    "programming exercises",
+    "responsive design",
     "Judge0",
     "online coding",
-    "Mikkaiser Coder"
+    "NovaBuild Web Studio"
   ],
   robots: { index: true, follow: true },
   manifest: "/site.webmanifest",
@@ -50,12 +53,12 @@ export const metadata: Metadata = {
     canonical: "/"
   },
   openGraph: defaultOpenGraph({
-    title: `${SITE_NAME} — Python coding challenges`,
+    title: `${SITE_NAME} — Web Technologies Challenges`,
     description: DEFAULT_DESCRIPTION,
     path: "/"
   }),
   twitter: defaultTwitter({
-    title: `${SITE_NAME} — Python coding challenges`,
+    title: `${SITE_NAME} — Web Technologies Challenges`,
     description: DEFAULT_DESCRIPTION
   })
 };

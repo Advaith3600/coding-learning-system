@@ -1,0 +1,37 @@
+# Local development override.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# What this adds:
+#   - next-app uses Dockerfile.dev (hot-reload via HMR)
+#   - Source code is bind-mounted into the container
+#   - Port 3000 is published for the browser
+#   - Port 5433 published for app-db (run migrations/seed from host)
+#   - coding-learning-network is defined locally (no need for `docker network create`)
+
+services:
+  app-db:
+    ports:
+      - "5433:5432"
+
+  next-app:
+    build:
+      context: ./next-app
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./next-app:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      APP_DATABASE_URL: postgres://app:${APP_POSTGRES_PASSWORD}@app-db:5432/app
+      JUDGE0_API_URL: http://server:2358
+      JWT_SECRET: dev_jwt_secret_change_in_production
+      NEXT_PUBLIC_SITE_URL: ""
+    ports:
+      - "3000:3000"
+    depends_on:
+      app-db:
+        condition: service_healthy
+
+networks:
+  coding-learning-network:
+    external: false

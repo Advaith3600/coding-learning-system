@@ -19,5 +19,5 @@ jobs:
           script: |
             cd /root/projects/coding-learning-system
             git pull origin main
-            docker compose up --build -d next-app
+            docker compose -p web-technologies up --build -d next-app
             docker image prune -f
