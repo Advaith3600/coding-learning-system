@@ -4,7 +4,7 @@ import { SITE_NAME, defaultOpenGraph, defaultTwitter, robotsPrivate } from "@/li
 
 const title = "Manage students";
 const desc =
-  "Create, edit, and remove student accounts for your NovaBuild Web Studio classroom. Set usernames, emails, and passwords.";
+  "Create, edit, and remove student accounts. Set usernames, emails, and passwords.";
 
 export const metadata: Metadata = {
   title,

@@ -84,7 +84,7 @@ export default function LoginPage() {
                 <polyline points="8 6 2 12 8 18" />
               </svg>
               <span className="text-xl font-bold tracking-tight text-fg">
-                NovaBuild<span className="text-brand-accent"> Web Studio</span>
+                Web<span className="text-brand-accent"> Technologies</span>
               </span>
             </div>
           </div>

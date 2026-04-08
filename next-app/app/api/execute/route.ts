@@ -7,18 +7,13 @@ import { getChallenge } from "@/lib/challenges/catalog";
 import type { ChallengeId } from "@/lib/challenges/types";
 import type { ChallengeTestCase } from "@/lib/challenges/types";
 
-type Judge0Status = {
-  id: number;
-  description?: string;
-};
+/** Upper bound for the blocking Piston `/execute` request (ms). */
+const PISTON_EXECUTE_TIMEOUT_MS = 120_000;
 
-type Judge0SubmissionResult = {
-  token: string;
-  status: Judge0Status;
-  stdout: string | null;
-  stderr: string | null;
-  compile_output: string | null;
-};
+/** Vercel / long-running route budget (seconds); keep >= PISTON_EXECUTE_TIMEOUT_MS. */
+export const maxDuration = 120;
+
+type ExecutionStatus = { id: number; description?: string };
 
 type FunctionsStdoutJson = {
   allPassed: boolean;
@@ -30,49 +25,114 @@ type FunctionsStdoutJson = {
   }>;
 };
 
-/**
- * Judge0 is polled with `base64_encoded=false`, so stdout/stderr are plain UTF-8 text.
- */
-function decodeJudge0TextField(value: string | null | undefined): string {
-  if (value == null || value === "") return "";
-  return String(value);
+function isAbortOrTimeoutError(e: unknown): boolean {
+  if (!(e instanceof Error)) return false;
+  return e.name === "AbortError" || e.name === "TimeoutError";
 }
 
-async function pollUntilDone(
-  judge0Root: string,
-  token: string
-): Promise<Judge0SubmissionResult> {
-  const maxAttempts = 20;
-  const delayMs = 500;
-  for (let i = 0; i < maxAttempts; i++) {
-    const pollUrl = new URL(`submissions/${token}`, judge0Root);
-    pollUrl.searchParams.set("base64_encoded", "false");
-    const pollRes = await fetch(pollUrl.toString());
-    if (!pollRes.ok) throw new Error("Poll request failed");
-    const result = (await pollRes.json()) as Judge0SubmissionResult;
-    if (result.status.id !== 1 && result.status.id !== 2) return result;
-    if (i < maxAttempts - 1) {
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-    }
+type PistonRuntime = {
+  language?: unknown;
+  version?: unknown;
+  aliases?: unknown;
+  runtime?: unknown;
+};
+
+type PistonExecuteRequest = {
+  language: string;
+  version: string;
+  files: Array<{ name: string; content: string }>;
+  stdin?: string;
+  args?: string[];
+  compile_timeout?: number;
+  run_timeout?: number;
+  compile_memory_limit?: number;
+  run_memory_limit?: number;
+};
+
+type PistonExecuteResult = {
+  language?: string;
+  version?: string;
+  run?: { stdout?: string; stderr?: string; output?: string; code?: number | null; signal?: string | null };
+  compile?: { stdout?: string; stderr?: string; output?: string; code?: number | null; signal?: string | null };
+  message?: string;
+};
+
+function toPistonRoot(pistonBaseUrl: string): string {
+  return pistonBaseUrl.endsWith("/") ? pistonBaseUrl : `${pistonBaseUrl}/`;
+}
+
+function parseSemverMajor(version: string): number | null {
+  const m = version.trim().match(/^v?(\d+)(?:\.\d+)?(?:\.\d+)?/i);
+  if (!m) return null;
+  const major = parseInt(m[1] ?? "", 10);
+  return Number.isFinite(major) ? major : null;
+}
+
+function cmpSemverDesc(a: string, b: string): number {
+  const pa = a.replace(/^v/i, "").split(".").map((x) => parseInt(x, 10));
+  const pb = b.replace(/^v/i, "").split(".").map((x) => parseInt(x, 10));
+  for (let i = 0; i < 3; i++) {
+    const da = Number.isFinite(pa[i]) ? (pa[i] as number) : 0;
+    const db = Number.isFinite(pb[i]) ? (pb[i] as number) : 0;
+    if (da !== db) return db - da;
   }
-  throw new Error("Submission timed out after polling");
+  return 0;
 }
 
-/**
- * Returns the Judge0 language_id for a given challenge kind.
- *   71 = Python 3.8 (output / fix / functions)
- *   63 = Node.js 12 (html / css validation harnesses)
- */
-function languageIdForKind(kind: string): number {
-  if (kind === "html" || kind === "css") return 63;
-  return 71;
+function asStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.map((x) => (typeof x === "string" ? x : "")).filter(Boolean);
+}
+
+function asRuntimeList(data: unknown): Array<{ language: string; version: string; aliases: string[]; runtime: string }> {
+  if (!Array.isArray(data)) return [];
+  const out: Array<{ language: string; version: string; aliases: string[]; runtime: string }> = [];
+  for (const item of data as PistonRuntime[]) {
+    const language = typeof item?.language === "string" ? item.language : "";
+    const version = typeof item?.version === "string" ? item.version : "";
+    const runtime = typeof item?.runtime === "string" ? item.runtime : "";
+    const aliases = asStringArray(item?.aliases);
+    if (!language || !version) continue;
+    out.push({ language, version, aliases, runtime });
+  }
+  return out;
+}
+
+let cachedRuntimes: Array<{ language: string; version: string; aliases: string[]; runtime: string }> | null = null;
+let cachedRuntimesAtMs = 0;
+
+async function fetchPistonRuntimes(pistonRoot: string): Promise<Array<{ language: string; version: string; aliases: string[]; runtime: string }>> {
+  const now = Date.now();
+  if (cachedRuntimes && now - cachedRuntimesAtMs < 30_000) return cachedRuntimes;
+
+  const url = new URL("api/v2/runtimes", pistonRoot);
+  const res = await fetch(url.toString(), { signal: AbortSignal.timeout(7_000) });
+  if (!res.ok) throw new Error(`Failed to fetch Piston runtimes (${res.status}).`);
+  const json = (await res.json()) as unknown;
+  const list = asRuntimeList(json);
+  cachedRuntimes = list;
+  cachedRuntimesAtMs = now;
+  return list;
+}
+
+function pickRuntimeVersion(
+  runtimes: Array<{ language: string; version: string; aliases: string[]; runtime: string }>,
+  wantedLanguage: "javascript" | "php",
+  wantedMajor?: number
+): { language: string; version: string } | null {
+  const matches = runtimes
+    .filter((r) => r.language === wantedLanguage || r.aliases.includes(wantedLanguage))
+    .filter((r) => (typeof wantedMajor === "number" ? parseSemverMajor(r.version) === wantedMajor : true))
+    .sort((a, b) => cmpSemverDesc(a.version, b.version));
+  const best = matches[0];
+  return best ? { language: best.language, version: best.version } : null;
 }
 
 export async function POST(req: Request) {
-  const judge0BaseUrl = process.env.JUDGE0_API_URL;
-  if (!judge0BaseUrl) {
+  const pistonBaseUrl = process.env.PISTON_API_URL;
+  if (!pistonBaseUrl) {
     return NextResponse.json(
-      { error: "JUDGE0_API_URL is not configured on the server." },
+      { error: "PISTON_API_URL is not configured on the server." },
       { status: 500 }
     );
   }
@@ -104,66 +164,91 @@ export async function POST(req: Request) {
     );
   }
 
+  if (challenge.kind !== "html" && challenge.kind !== "css") {
+    return NextResponse.json(
+      { error: "Unsupported challenge kind." },
+      { status: 400 }
+    );
+  }
+
   const program = buildProgram(challenge, code);
-  const languageId = languageIdForKind(challenge.kind);
 
-  const judge0Root = judge0BaseUrl.endsWith("/")
-    ? judge0BaseUrl
-    : `${judge0BaseUrl}/`;
-  const submitUrl = new URL("submissions", judge0Root);
-  submitUrl.searchParams.set("base64_encoded", "false");
+  const pistonRoot = toPistonRoot(pistonBaseUrl);
 
-  const submitRes = await fetch(submitUrl.toString(), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      language_id: languageId,
-      source_code: program,
-      enable_per_process_and_thread_memory_limit: true,
-      enable_per_process_and_thread_time_limit: true
-    })
-  });
-
-  if (!submitRes.ok) {
-    const text = await submitRes.text().catch(() => "");
-    return NextResponse.json(
-      { error: "Failed to submit to Judge0.", details: text },
-      { status: 502 }
-    );
-  }
-
-  const submitData = (await submitRes.json()) as { token?: string };
-  if (!submitData?.token) {
-    return NextResponse.json(
-      { error: "No token returned from Judge0." },
-      { status: 502 }
-    );
-  }
-
-  let result: Judge0SubmissionResult;
+  let runtimes: Array<{ language: string; version: string; aliases: string[]; runtime: string }>;
   try {
-    result = await pollUntilDone(judge0Root, submitData.token);
-  } catch {
+    runtimes = await fetchPistonRuntimes(pistonRoot);
+  } catch (e) {
     return NextResponse.json(
-      { error: "Code execution timed out." },
-      { status: 504 }
+      { error: "Failed to query Piston runtimes.", details: e instanceof Error ? e.message : String(e) },
+      { status: 502 }
     );
   }
 
-  const stdout = decodeJudge0TextField(result.stdout);
-  const stderr =
-    decodeJudge0TextField(result.stderr) ||
-    decodeJudge0TextField(result.compile_output);
-  const status = result.status;
+  // Prefer Node 24 if available, but gracefully fall back to latest JS runtime.
+  const node = pickRuntimeVersion(runtimes, "javascript", 24) ?? pickRuntimeVersion(runtimes, "javascript");
+
+  if (!node) {
+    return NextResponse.json(
+      { error: "Piston does not provide any JavaScript runtime." },
+      { status: 500 }
+    );
+  }
+
+  const executeUrl = new URL("api/v2/execute", pistonRoot);
+
+  let execRes: Response;
+  try {
+    const payload: PistonExecuteRequest = {
+      language: node.language,
+      version: node.version,
+      files: [{ name: "main.js", content: program }],
+      stdin: "",
+      args: []
+    };
+
+    execRes = await fetch(executeUrl.toString(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(PISTON_EXECUTE_TIMEOUT_MS),
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {
+    if (isAbortOrTimeoutError(e)) {
+      return NextResponse.json(
+        { error: "Code execution timed out." },
+        { status: 504 }
+      );
+    }
+    throw e;
+  }
+
+  if (!execRes.ok) {
+    const text = await execRes.text().catch(() => "");
+    return NextResponse.json(
+      { error: "Failed to execute on Piston.", details: text },
+      { status: 502 }
+    );
+  }
+
+  const result = (await execRes.json()) as PistonExecuteResult;
+
+  const compileOutput = String(result?.compile?.output ?? "");
+  const runOutput = String(result?.run?.output ?? "");
+  const stdout = String(result?.run?.stdout ?? "");
+  const stderr = String(result?.run?.stderr ?? "") || String(result?.compile?.stderr ?? "") || compileOutput;
+
+  const exitCode = typeof result?.run?.code === "number" ? result.run.code : null;
+  const status: ExecutionStatus =
+    exitCode === 0
+      ? { id: 0, description: "OK" }
+      : { id: exitCode ?? 1, description: result?.message ? String(result.message) : "Non-zero exit" };
 
   let tests: ChallengeTestCase[] | undefined;
   let correct = isCorrect(challenge, stdout);
 
-  // HTML / CSS and functions challenges return structured JSON from the harness
-  const isStructuredKind =
-    challenge.kind === "functions" ||
-    challenge.kind === "html" ||
-    challenge.kind === "css";
+  // HTML / CSS challenges return structured JSON from the Node.js harness
+  const isStructuredKind = challenge.kind === "html" || challenge.kind === "css";
 
   if (isStructuredKind && !stderr.trim()) {
     try {
@@ -182,24 +267,12 @@ export async function POST(req: Request) {
     }
   }
 
-  if (challenge.kind === "output" || challenge.kind === "fix") {
-    const exp = challenge.expected ?? "";
-    tests = [
-      {
-        name: exp.startsWith("__") ? "Pattern" : "Exact output",
-        passed: correct,
-        expected: exp.startsWith("__") ? exp : exp,
-        got: stdout.trim()
-      }
-    ];
-  }
-
   const stdoutForClient =
     isStructuredKind && tests && tests.length > 0 ? "" : stdout;
 
   return NextResponse.json({
     stdout: stdoutForClient,
-    stderr,
+    stderr: stderr || (exitCode === 0 ? "" : runOutput),
     status,
     correct,
     tests

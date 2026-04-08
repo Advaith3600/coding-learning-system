@@ -312,7 +312,7 @@ process.stdout.write(JSON.stringify({ allPassed: allPassed, tests: results }) + 
 }
 
 // ---------------------------------------------------------------------------
-// Python function harnesses (legacy — kept for backwards compatibility)
+// Function harnesses (legacy — kept for backwards compatibility)
 // ---------------------------------------------------------------------------
 
 export function buildLegacy142Harness(userCode: string): string {

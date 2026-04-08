@@ -1,55 +1,40 @@
 services:
-  db:
-    image: postgres:13
-    restart: always
-    environment:
-      POSTGRES_DB: judge0
-      POSTGRES_USER: judge0
-      POSTGRES_PASSWORD: ${JUDGE0_POSTGRES_PASSWORD}
-    volumes:
-      - ${DB_VOLUMES_BASE:-./data}/judge0-db:/var/lib/postgresql/data
-    networks:
-      - judge0_net
-
-  redis:
-    image: redis:6
-    restart: always
-    networks:
-      - judge0_net
-
-  server:
-    image: judge0/judge0:latest
-    restart: always
-    environment:
-      REDIS_HOST: redis
-      POSTGRES_HOST: db
-      POSTGRES_DB: judge0
-      POSTGRES_USER: judge0
-      POSTGRES_PASSWORD: ${JUDGE0_POSTGRES_PASSWORD}
-    depends_on:
-      - db
-      - redis
-    networks:
-      - judge0_net
-    command: >
-      bash -li -c "export PATH=/usr/local/ruby-2.7.0/bin:/api/bin:$$PATH; ./scripts/server"
-
-  workers:
-    image: judge0/judge0:latest
-    restart: always
-    environment:
-      REDIS_HOST: redis
-      POSTGRES_HOST: db
-      POSTGRES_DB: judge0
-      POSTGRES_USER: judge0
-      POSTGRES_PASSWORD: ${JUDGE0_POSTGRES_PASSWORD}
-    depends_on:
-      - server
+  piston-setup:
+    image: ghcr.io/engineer-man/piston:latest
+    restart: "no"
     networks:
       - judge0_net
     privileged: true
-    command: >
-      bash -li -c "export PATH=/usr/local/ruby-2.7.0/bin:/api/bin:$$PATH; ./scripts/workers"
+    security_opt:
+      - seccomp=unconfined
+    volumes:
+      - ${DB_VOLUMES_BASE:-./data}/piston-data:/piston
+      - ./next-app/scripts/piston-setup.js:/setup/piston-setup.js:ro
+    depends_on:
+      piston:
+        condition: service_healthy
+    command: ["node", "/setup/piston-setup.js"]
+
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    restart: always
+    networks:
+      - judge0_net
+    # Piston uses container sandboxing; these opts help in some Docker setups.
+    privileged: true
+    security_opt:
+      - seccomp=unconfined
+    volumes:
+      - ${DB_VOLUMES_BASE:-./data}/piston-data:/piston
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"const http=require('http');const req=http.request({host:'127.0.0.1',port:2000,path:'/api/v2/runtimes',method:'GET'},(res)=>process.exit(res.statusCode===200?0:1));req.on('error',()=>process.exit(1));req.end();\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   app-db:
     image: postgres:16
@@ -78,8 +63,8 @@ services:
     environment:
       APP_DATABASE_URL: postgres://app:${APP_POSTGRES_PASSWORD}@app-db:5432/app
     depends_on:
-      server:
-        condition: service_started
+      piston:
+        condition: service_healthy
       app-db:
         condition: service_healthy
     networks:
@@ -89,4 +74,4 @@ services:
 networks:
   judge0_net:
   coding-learning-network:
-    external: true
+    external: ${CODING_LEARNING_NETWORK_EXTERNAL:-false}

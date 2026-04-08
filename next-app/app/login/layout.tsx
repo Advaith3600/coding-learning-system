@@ -4,7 +4,7 @@ import { SITE_NAME, defaultOpenGraph, defaultTwitter, robotsPrivate } from "@/li
 
 const title = "Sign in";
 const desc =
-  "Sign in to NovaBuild Web Studio to access Web Technologies challenges, modules, and your learning progress.";
+  "Sign in to access Web Technologies challenges, modules, and your learning progress.";
 
 export const metadata: Metadata = {
   title,

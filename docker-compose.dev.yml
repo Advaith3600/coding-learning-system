@@ -23,12 +23,14 @@ services:
       - /app/.next
     environment:
       APP_DATABASE_URL: postgres://app:${APP_POSTGRES_PASSWORD}@app-db:5432/app
-      JUDGE0_API_URL: http://server:2358
+      PISTON_API_URL: http://piston:2000
       JWT_SECRET: dev_jwt_secret_change_in_production
       NEXT_PUBLIC_SITE_URL: ""
     ports:
       - "3000:3000"
     depends_on:
+      piston:
+        condition: service_healthy
       app-db:
         condition: service_healthy
 

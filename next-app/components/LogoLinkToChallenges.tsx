@@ -37,8 +37,8 @@ export function LogoLinkToChallenges({ variant }: Props) {
         <path d="M16 5l-4 18" />
       </svg>
       <span className={textSize}>
-        <span className="font-bold text-fg">NovaBuild</span>
-        <span className="font-medium text-brand-accent"> Web Studio</span>
+        <span className="font-bold text-fg">Web</span>
+        <span className="font-medium text-brand-accent"> Technologies</span>
       </span>
     </Link>
   );

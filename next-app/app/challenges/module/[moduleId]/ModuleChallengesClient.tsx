@@ -15,6 +15,38 @@ import type {
   ModuleId
 } from "@/lib/challenges/types";
 
+// Monaco spins up language workers (HTML/CSS/JSON/TS) that load scripts via URLs.
+// In some environments, workers can't `fetch()` a bare absolute-path string like
+// "/monaco/..." so we provide fully-qualified URLs.
+if (typeof window !== "undefined") {
+  (window as unknown as { MonacoEnvironment?: unknown }).MonacoEnvironment = {
+    getWorkerUrl(_moduleId: string, label: string) {
+      const origin = window.location.origin;
+      const base = `${origin}/monaco/vs`;
+
+      switch (label) {
+        case "json":
+          return `${base}/language/json/jsonWorker.js`;
+        case "css":
+        case "scss":
+        case "less":
+          return `${base}/language/css/cssWorker.js`;
+        case "html":
+        case "handlebars":
+        case "razor":
+          return `${base}/language/html/htmlWorker.js`;
+        case "typescript":
+        case "javascript":
+          return `${base}/language/typescript/tsWorker.js`;
+        default:
+          // This repo's Monaco assets don't include `vs/editor/editor.worker.js`.
+          // The generic worker entrypoint is the AMD worker main.
+          return `${base}/base/worker/workerMain.js`;
+      }
+    }
+  };
+}
+
 loader.config({ paths: { vs: "/monaco/vs" } });
 
 type UiState =
@@ -42,7 +74,7 @@ function sortChallenges(list: ChallengeDefinition[]): ChallengeDefinition[] {
 function editorLanguage(kind: ChallengeKind): string {
   if (kind === "html") return "html";
   if (kind === "css") return "css";
-  return "python";
+  return "plaintext";
 }
 
 function Spinner() {
@@ -650,7 +682,7 @@ export function ModuleChallengesClient({
                     ) : null}
                   </div>
                 ) : (
-                  /* ---- Code Challenge (HTML / CSS / Python) ---- */
+                  /* ---- Code Challenge (HTML / CSS) ---- */
                   <div className="mt-6 rounded-xl border border-border border-l-2 border-l-brand-accent bg-bg p-4">
                     {/* Editor + preview panel */}
                     <div className={isWebChallenge ? "flex flex-col gap-4 md:flex-row" : ""}>

@@ -35,9 +35,8 @@ export const metadata: Metadata = {
     "learn CSS",
     "coding challenges",
     "responsive design",
-    "Judge0",
-    "online coding",
-    "NovaBuild Web Studio"
+    "Piston",
+    "online coding"
   ],
   robots: { index: true, follow: true },
   manifest: "/site.webmanifest",

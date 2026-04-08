@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SITE_NAME, defaultOpenGraph, defaultTwitter, robotsPrivate } from "@/lib/seo";
 
-const desc = "Admin area for NovaBuild Web Studio: view the dashboard or manage students.";
+const desc = "Admin area: view the dashboard or manage students.";
 
 export const metadata: Metadata = {
   title: "Admin",
