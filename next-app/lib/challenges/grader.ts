@@ -262,6 +262,146 @@ const CSS_RULES: Record<string, RuleSpec> = {
   "media-1024-content": {
     label: "1024px media query contains CSS rules",
     expr: `(function(){ var m=code.match(/@media[^{]*min-width\\s*:\\s*1024px[^{]*\\{([\\s\\S]*?)\\}/); return !!(m && m[1] && m[1].replace(/\\/\\*[\\s\\S]*?\\*\\//g,'').trim().length>0); })()`
+  },
+
+  // -------------------------------------------------------------------------
+  // CU02 — Button component variants
+  // -------------------------------------------------------------------------
+  "btn-class": {
+    label: ".btn base class defined",
+    expr: `/\\.btn\\s*\\{/.test(code)`
+  },
+  "btn-primary": {
+    label: ".btn-primary variant defined",
+    expr: `/\\.btn-primary\\s*\\{/.test(code)`
+  },
+  "btn-secondary": {
+    label: ".btn-secondary variant defined",
+    expr: `/\\.btn-secondary\\s*\\{/.test(code)`
+  },
+  "btn-danger": {
+    label: ".btn-danger variant defined",
+    expr: `/\\.btn-danger\\s*\\{/.test(code)`
+  },
+  "btn-ghost": {
+    label: ".btn-ghost variant defined",
+    expr: `/\\.btn-ghost\\s*\\{/.test(code)`
+  },
+
+  // CU02 — Card component variants
+  "card-class": {
+    label: ".card base class defined",
+    expr: `/\\.card\\s*\\{/.test(code)`
+  },
+  "card-featured": {
+    label: ".card--featured variant defined",
+    expr: `/\\.card--featured\\s*\\{/.test(code)`
+  },
+  "card-minimal": {
+    label: ".card--minimal variant defined",
+    expr: `/\\.card--minimal\\s*\\{/.test(code)`
+  },
+
+  // CU02 — Badge component variants
+  "badge-class": {
+    label: ".badge base class defined",
+    expr: `/\\.badge\\s*\\{/.test(code)`
+  },
+  "badge-success": {
+    label: ".badge--success variant defined",
+    expr: `/\\.badge--success\\s*\\{/.test(code)`
+  },
+  "badge-warning": {
+    label: ".badge--warning variant defined",
+    expr: `/\\.badge--warning\\s*\\{/.test(code)`
+  },
+
+  // CU02 — Interactive states
+  "hover-state": {
+    label: ":hover pseudo-class used",
+    expr: `/:hover\\s*\\{/.test(code)`
+  },
+  "focus-state": {
+    label: ":focus pseudo-class used",
+    expr: `/:focus\\s*\\{/.test(code)`
+  },
+  "active-state": {
+    label: ":active pseudo-class used",
+    expr: `/:active\\s*\\{/.test(code)`
+  },
+  "focus-outline": {
+    label: "outline property set on focus state",
+    expr: `/outline\\s*:/.test(code)`
+  },
+
+  // CU02 — Sticky header / z-index
+  "sticky-position": {
+    label: "position: sticky used",
+    expr: `/position\\s*:\\s*sticky/.test(code)`
+  },
+  "z-index-value": {
+    label: "z-index property set",
+    expr: `/z-index\\s*:/.test(code)`
+  },
+
+  // CU02 — Dropdown menu
+  "dropdown-hidden": {
+    label: "dropdown hidden by default (display:none or visibility:hidden)",
+    expr: `/(display\\s*:\\s*none|visibility\\s*:\\s*hidden)/.test(code)`
+  },
+  "min-width-prop": {
+    label: "min-width set on dropdown panel",
+    expr: `/min-width\\s*:/.test(code)`
+  },
+
+  // CU02 — Transitions
+  "transition-prop": {
+    label: "transition property used",
+    expr: `/transition\\s*:/.test(code)`
+  },
+  "transition-200": {
+    label: "200ms transition timing used",
+    expr: `/200ms/.test(code)`
+  },
+  "transition-250": {
+    label: "250ms transition timing used",
+    expr: `/250ms/.test(code)`
+  },
+
+  // CU02 — Keyframe animations
+  "keyframes-fadeInUp": {
+    label: "@keyframes fadeInUp defined",
+    expr: `/@keyframes\\s+fadeInUp/.test(code)`
+  },
+  "keyframes-pulse": {
+    label: "@keyframes pulse defined",
+    expr: `/@keyframes\\s+pulse/.test(code)`
+  },
+  "animation-prop": {
+    label: "animation property applied to an element",
+    expr: `/animation\\s*:/.test(code)`
+  },
+
+  // CU02 — Utility classes
+  "utility-mt": {
+    label: "margin-top utility class defined (.u-mt-)",
+    expr: `/\\.u-mt-/.test(code)`
+  },
+  "utility-mb": {
+    label: "margin-bottom utility class defined (.u-mb-)",
+    expr: `/\\.u-mb-/.test(code)`
+  },
+  "utility-p": {
+    label: "padding utility class defined (.u-p-)",
+    expr: `/\\.u-p-/.test(code)`
+  },
+  "utility-text": {
+    label: "text-size utility class defined (.u-text-)",
+    expr: `/\\.u-text-/.test(code)`
+  },
+  "utility-font": {
+    label: "font-weight utility class defined (.u-font-)",
+    expr: `/\\.u-font-/.test(code)`
   }
 };
 

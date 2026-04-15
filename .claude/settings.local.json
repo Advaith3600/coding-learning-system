@@ -1,15 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find /root/development/coding-learning-system/next-app/lib -name m01*)",
-      "Bash(docker compose:*)",
-      "Bash(docker --version)",
-      "Bash(docker context:*)",
-      "Bash(docker info:*)",
-      "Bash(findstr /i \"error warning started running healthy exited\")",
-      "Bash(docker ps:*)",
-      "Bash(powershell -Command \"Get-Content ''C:\\\\Users\\\\Advaith A J\\\\.claude\\\\projects\\\\--wsl-localhost-Ubuntu-root-development-coding-learning-system\\\\c9efb77e-0d93-4882-a178-8411c7071a40\\\\tool-results\\\\b0s6mzthz.txt'' | Select-Object -Last 60\")",
-      "Bash(docker exec:*)"
+      "Bash(npx tsc:*)",
+      "Bash(wsl bash:*)"
     ]
   }
 }
