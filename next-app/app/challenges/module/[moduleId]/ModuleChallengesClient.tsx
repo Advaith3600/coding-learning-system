@@ -78,34 +78,35 @@ function editorLanguage(kind: ChallengeKind): string {
   return "plaintext";
 }
 
-function configureMonacoSnippetProviders(monaco: {
-  languages: {
-    CompletionItemInsertTextRule: { InsertAsSnippet: number };
-    CompletionItemKind: { Snippet: number };
-    registerCompletionItemProvider: (
-      language: string,
-      provider: {
-        provideCompletionItems: () => {
-          suggestions: Array<{
-            label: string;
-            kind: number;
-            insertText: string;
-            insertTextRules: number;
-            documentation: string;
-          }>;
-        };
-      }
-    ) => unknown;
+function configureMonacoSnippetProviders(monaco: unknown): void {
+  const typedMonaco = monaco as {
+    languages: {
+      CompletionItemInsertTextRule: { InsertAsSnippet: number };
+      CompletionItemKind: { Snippet: number };
+      registerCompletionItemProvider: (
+        language: string,
+        provider: {
+          provideCompletionItems: () => {
+            suggestions: Array<{
+              label: string;
+              kind: number;
+              insertText: string;
+              insertTextRules: number;
+              documentation: string;
+            }>;
+          };
+        }
+      ) => unknown;
+    };
   };
-}): void {
   const globalObj = globalThis as Record<string, unknown>;
   if (globalObj[MONACO_SNIPPETS_SETUP_FLAG]) return;
   globalObj[MONACO_SNIPPETS_SETUP_FLAG] = true;
 
-  const snippetKind = monaco.languages.CompletionItemKind.Snippet;
-  const insertAsSnippet = monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet;
+  const snippetKind = typedMonaco.languages.CompletionItemKind.Snippet;
+  const insertAsSnippet = typedMonaco.languages.CompletionItemInsertTextRule.InsertAsSnippet;
 
-  monaco.languages.registerCompletionItemProvider("html", {
+  typedMonaco.languages.registerCompletionItemProvider("html", {
     provideCompletionItems: () => ({
       suggestions: [
         {
@@ -140,7 +141,7 @@ function configureMonacoSnippetProviders(monaco: {
     })
   });
 
-  monaco.languages.registerCompletionItemProvider("css", {
+  typedMonaco.languages.registerCompletionItemProvider("css", {
     provideCompletionItems: () => ({
       suggestions: [
         {

@@ -745,7 +745,7 @@ h2 { font-size: 16px; margin-bottom: 8px; }
             </code>
             ; the email field must use{" "}
             <code className="rounded border border-border bg-bg px-1 py-0.5 font-mono text-sm text-fg">
-              type="email"
+              type=&quot;email&quot;
             </code>
             ; and one field must have{" "}
             <code className="rounded border border-border bg-bg px-1 py-0.5 font-mono text-sm text-fg">
@@ -755,8 +755,8 @@ h2 { font-size: 16px; margin-bottom: 8px; }
           </p>
           <p className="text-sm text-muted">
             <strong className="text-fg">Why labels matter:</strong> Screen readers read the label
-            aloud when a user focuses a field. Without a linked label, a blind user hears "Edit
-            field" with no context. The{" "}
+            aloud when a user focuses a field. Without a linked label, a blind user hears
+            &quot;Edit field&quot; with no context. The{" "}
             <code className="rounded border border-border bg-bg px-1 py-0.5 font-mono text-sm text-fg">
               for
             </code>{" "}
