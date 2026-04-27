@@ -58,6 +58,7 @@ type UiState =
   | { kind: "failure" };
 
 const NOVABUILD_THEME = "novabuild-challenges";
+const MONACO_SNIPPETS_SETUP_FLAG = "__challengeSnippetsSetupDone__";
 
 function sortChallenges(list: ChallengeDefinition[]): ChallengeDefinition[] {
   return [...list].sort((a, b) => {
@@ -75,6 +76,104 @@ function editorLanguage(kind: ChallengeKind): string {
   if (kind === "html") return "html";
   if (kind === "css") return "css";
   return "plaintext";
+}
+
+function configureMonacoSnippetProviders(monaco: {
+  languages: {
+    CompletionItemInsertTextRule: { InsertAsSnippet: number };
+    CompletionItemKind: { Snippet: number };
+    registerCompletionItemProvider: (
+      language: string,
+      provider: {
+        provideCompletionItems: () => {
+          suggestions: Array<{
+            label: string;
+            kind: number;
+            insertText: string;
+            insertTextRules: number;
+            documentation: string;
+          }>;
+        };
+      }
+    ) => unknown;
+  };
+}): void {
+  const globalObj = globalThis as Record<string, unknown>;
+  if (globalObj[MONACO_SNIPPETS_SETUP_FLAG]) return;
+  globalObj[MONACO_SNIPPETS_SETUP_FLAG] = true;
+
+  const snippetKind = monaco.languages.CompletionItemKind.Snippet;
+  const insertAsSnippet = monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet;
+
+  monaco.languages.registerCompletionItemProvider("html", {
+    provideCompletionItems: () => ({
+      suggestions: [
+        {
+          label: "!",
+          kind: snippetKind,
+          insertText: "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n  <title>${1:Document}</title>\n</head>\n<body>\n  ${0}\n</body>\n</html>",
+          insertTextRules: insertAsSnippet,
+          documentation: "HTML boilerplate"
+        },
+        {
+          label: "div",
+          kind: snippetKind,
+          insertText: "<div class=\"${1:container}\">\n  ${0}\n</div>",
+          insertTextRules: insertAsSnippet,
+          documentation: "Div container"
+        },
+        {
+          label: "ul>li*3",
+          kind: snippetKind,
+          insertText: "<ul>\n  <li>${1:Item 1}</li>\n  <li>${2:Item 2}</li>\n  <li>${0:Item 3}</li>\n</ul>",
+          insertTextRules: insertAsSnippet,
+          documentation: "Unordered list with three items"
+        },
+        {
+          label: "a",
+          kind: snippetKind,
+          insertText: "<a href=\"${1:https://example.com}\">${0:Link text}</a>",
+          insertTextRules: insertAsSnippet,
+          documentation: "Anchor link"
+        }
+      ]
+    })
+  });
+
+  monaco.languages.registerCompletionItemProvider("css", {
+    provideCompletionItems: () => ({
+      suggestions: [
+        {
+          label: "df",
+          kind: snippetKind,
+          insertText: "display: flex;",
+          insertTextRules: insertAsSnippet,
+          documentation: "Display flex"
+        },
+        {
+          label: "jc",
+          kind: snippetKind,
+          insertText: "justify-content: ${1:center};",
+          insertTextRules: insertAsSnippet,
+          documentation: "Justify content"
+        },
+        {
+          label: "ai",
+          kind: snippetKind,
+          insertText: "align-items: ${1:center};",
+          insertTextRules: insertAsSnippet,
+          documentation: "Align items"
+        },
+        {
+          label: "m0a",
+          kind: snippetKind,
+          insertText: "margin: 0 auto;",
+          insertTextRules: insertAsSnippet,
+          documentation: "Horizontal centering"
+        }
+      ]
+    })
+  });
 }
 
 function Spinner() {
@@ -701,6 +800,7 @@ export function ModuleChallengesClient({
                             }))
                           }
                           beforeMount={(monaco) => {
+                            configureMonacoSnippetProviders(monaco);
                             monaco.editor.defineTheme(NOVABUILD_THEME, {
                               base: "vs-dark",
                               inherit: true,
@@ -721,13 +821,33 @@ export function ModuleChallengesClient({
                               }
                             });
                           }}
+                          onMount={(editor) => {
+                            editor.addAction({
+                              id: "challenge.triggerSuggest",
+                              label: "Trigger Suggest",
+                              keybindings: [2048 | 10],
+                              run: () => {
+                                editor.trigger("keyboard", "editor.action.triggerSuggest", {});
+                              }
+                            });
+                          }}
                           options={{
                             minimap: { enabled: false },
                             fontSize: 15,
                             scrollBeyondLastLine: false,
                             automaticLayout: true,
                             readOnly: false,
-                            wordWrap: isWebChallenge ? "on" : "off"
+                            wordWrap: isWebChallenge ? "on" : "off",
+                            quickSuggestions: {
+                              other: "on",
+                              comments: "off",
+                              strings: "on"
+                            },
+                            suggestOnTriggerCharacters: true,
+                            snippetSuggestions: "top",
+                            tabCompletion: "on",
+                            acceptSuggestionOnEnter: "on",
+                            acceptSuggestionOnCommitCharacter: true
                           }}
                         />
                       </div>
