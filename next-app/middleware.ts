@@ -4,6 +4,7 @@ import { AUTH_COOKIE_NAME, verifyAuthToken } from "@/lib/auth";
 
 function isPublicPath(pathname: string) {
   if (pathname === "/login") return true;
+  if (pathname === "/register") return true;
   if (pathname.startsWith("/api/auth")) return true;
   if (pathname === "/site.webmanifest") return true;
   if (
@@ -25,8 +26,8 @@ export async function middleware(req: NextRequest) {
   const token = req.cookies.get(AUTH_COOKIE_NAME)?.value;
   const user = token ? await verifyAuthToken(token) : null;
 
-  // Already signed in: keep /login private.
-  if (pathname === "/login" && user) {
+  // Already signed in: redirect away from auth pages.
+  if ((pathname === "/login" || pathname === "/register") && user) {
     const url = req.nextUrl.clone();
     url.pathname = "/challenges";
     return NextResponse.redirect(url);

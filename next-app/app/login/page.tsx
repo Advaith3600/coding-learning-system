@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
@@ -89,7 +90,12 @@ export default function LoginPage() {
             </div>
           </div>
           <h1 className="text-xl font-semibold tracking-tight text-fg">Sign in</h1>
-          <p className="mt-1 text-base text-muted">Use your account credentials.</p>
+          <p className="mt-1 text-base text-muted">
+            No account?{" "}
+            <Link href="/register" className="text-brand-accent hover:underline">
+              Create one
+            </Link>
+          </p>
 
           <form className="mt-6" onSubmit={onSubmitForm} noValidate>
             <div className="space-y-4">
